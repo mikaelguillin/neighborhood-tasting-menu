@@ -29,6 +29,58 @@ export async function createSupabaseServerClient() {
   });
 }
 
+export type VendorPortalUser = {
+  id: string;
+  name: string;
+  email: string;
+  avatar: string;
+  role: string;
+};
+
+function normalizeVendorPortalUser(authUser: {
+  id: string;
+  email?: string | null;
+  user_metadata?: Record<string, unknown> | null;
+}): VendorPortalUser {
+  const metadata = authUser.user_metadata ?? {};
+  const metadataName =
+    typeof metadata.full_name === "string"
+      ? metadata.full_name
+      : typeof metadata.name === "string"
+        ? metadata.name
+        : "";
+  const email = authUser.email ?? "";
+  const fallbackName = email.includes("@") ? email.split("@")[0] : "Account";
+  const avatar =
+    typeof metadata.avatar_url === "string"
+      ? metadata.avatar_url
+      : typeof metadata.picture === "string"
+        ? metadata.picture
+        : "";
+
+  return {
+    id: authUser.id,
+    name: metadataName.trim() || fallbackName || "Account",
+    email,
+    avatar,
+    role: "vendor",
+  };
+}
+
+export async function getVendorPortalUser() {
+  const supabase = await createSupabaseServerClient();
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+
+  if (authError || !authData.user) {
+    return { user: null, supabase };
+  }
+
+  return {
+    user: normalizeVendorPortalUser(authData.user),
+    supabase,
+  };
+}
+
 export async function requireVendorMembership() {
   const supabase = await createSupabaseServerClient();
   const { data: authData, error: authError } = await supabase.auth.getUser();

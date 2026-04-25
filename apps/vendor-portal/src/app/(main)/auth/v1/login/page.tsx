@@ -1,11 +1,19 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 import { Command } from "lucide-react";
+
+import { getVendorPortalUser } from "@/lib/supabase-server";
 
 import { LoginForm } from "../../_components/login-form";
 import { GoogleButton } from "../../_components/social-auth/google-button";
 
-export default function LoginV1() {
+export default async function LoginV1() {
+  const { user } = await getVendorPortalUser();
+  if (user) {
+    redirect("/dashboard/default");
+  }
+
   return (
     <div className="flex h-dvh">
       <div className="hidden bg-primary lg:block lg:w-1/3">
