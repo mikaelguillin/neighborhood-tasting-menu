@@ -1,5 +1,32 @@
 # Progress Log
 
+## Roadmap Alignment Snapshot (2026-04-25)
+
+Status: Updated to reflect current planning artifacts.
+
+### Completed (MVP Baseline)
+
+- [x] Monorepo/workspace foundation (`pnpm`, package discovery, root scripts, CI baseline).
+- [x] Shared package scaffolding (`packages/config`, `packages/types`, `packages/ui`).
+- [x] API service baseline (`apps/api` scaffold with health/version + test wiring).
+- [x] Supabase bootstrap (project structure, migration workflow, seed placeholders).
+- [x] Customer and vendor MVP flow foundations (tracked as complete in MVP plan).
+- [x] Billing/webhook and notification pipeline foundations (tracked as complete in MVP plan).
+
+### Planned (Next Delivery Track)
+
+- [ ] Sprint 1: Customer discovery and item experience.
+- [ ] Sprint 2: Cart, checkout, and order lifecycle transparency.
+- [ ] Sprint 3: Vendor daily operations and queue management.
+- [ ] Sprint 4: Merchant growth tools and customer trust features.
+- [ ] Sprint 5: Notifications, retention, and personalization.
+- [ ] Sprint 6: Hardening, accessibility, and launch readiness.
+
+### Notes
+
+- The MVP planning document indicates all core MVP tracks are complete.
+- This progress log previously captured mostly Phase 0 detail; this snapshot keeps execution reporting aligned with current roadmap docs.
+
 ## Phase 0: Foundation
 
 Status: Completed (initial Phase 0 baseline)
