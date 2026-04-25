@@ -1,8 +1,15 @@
 import { NextResponse } from "next/server";
+import type { PlanId } from "@/lib/catalog-types";
 import { createOrder, listOrders } from "@/lib/order-store";
+import { requireCustomerUserId } from "@/lib/supabase-server";
 
 export async function GET() {
-  return NextResponse.json({ items: listOrders() });
+  const auth = await requireCustomerUserId();
+  if ("error" in auth) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
+  }
+
+  return NextResponse.json({ items: await listOrders(auth.userId) });
 }
 
 export async function POST(request: Request) {
@@ -15,8 +22,13 @@ export async function POST(request: Request) {
       }
     | null;
 
-  const validPlanIds = new Set(["sampler", "weekly", "local-hero"]);
-  const planId = payload?.planId;
+  const auth = await requireCustomerUserId();
+  if ("error" in auth) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
+  }
+
+  const validPlanIds = new Set<PlanId>(["sampler", "weekly", "local-hero"]);
+  const planId = payload?.planId as PlanId | undefined;
   const address = payload?.address?.trim() ?? "";
   const deliveryWindow = payload?.deliveryWindow?.trim() ?? "";
 
@@ -27,11 +39,15 @@ export async function POST(request: Request) {
     );
   }
 
-  const order = createOrder({
-    planId: planId as "sampler" | "weekly" | "local-hero",
-    promoCode: payload?.promoCode,
-    address,
-    deliveryWindow,
-  });
-  return NextResponse.json(order, { status: 201 });
+  try {
+    const order = await createOrder(auth.userId, {
+      planId: planId as PlanId,
+      promoCode: payload?.promoCode,
+      address,
+      deliveryWindow,
+    });
+    return NextResponse.json(order, { status: 201 });
+  } catch {
+    return NextResponse.json({ error: "Failed to create order" }, { status: 500 });
+  }
 }

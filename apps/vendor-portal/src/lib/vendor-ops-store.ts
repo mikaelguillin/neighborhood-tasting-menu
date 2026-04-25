@@ -1,5 +1,6 @@
 export type QueueStatus = "new" | "confirmed" | "preparing" | "ready" | "fulfilled";
 export type QueuePriority = "high" | "medium" | "low";
+import { createSupabaseServerClient } from "@/lib/supabase-server";
 
 export type QueueOrder = {
   id: string;
@@ -21,165 +22,142 @@ export type InventoryItem = {
   outOfStockReason: string | null;
 };
 
-const queueOrders = new Map<string, QueueOrder>();
-const inventoryItems = new Map<string, InventoryItem>();
-
-function seed() {
-  if (queueOrders.size > 0 || inventoryItems.size > 0) return;
-
-  const now = Date.now();
-
-  const queueSeed: QueueOrder[] = [
-    {
-      id: "q_1001",
-      customerName: "A. Parker",
-      neighborhood: "Long Island City",
-      itemCount: 7,
-      dueAt: new Date(now + 1000 * 60 * 42).toISOString(),
-      slaMinutesRemaining: 42,
-      status: "new",
-      priority: "high",
-    },
-    {
-      id: "q_1002",
-      customerName: "R. Singh",
-      neighborhood: "Astoria",
-      itemCount: 5,
-      dueAt: new Date(now + 1000 * 60 * 88).toISOString(),
-      slaMinutesRemaining: 88,
-      status: "confirmed",
-      priority: "medium",
-    },
-    {
-      id: "q_1003",
-      customerName: "J. Chen",
-      neighborhood: "West Village",
-      itemCount: 8,
-      dueAt: new Date(now + 1000 * 60 * 27).toISOString(),
-      slaMinutesRemaining: 27,
-      status: "preparing",
-      priority: "high",
-    },
-    {
-      id: "q_1004",
-      customerName: "L. Wilson",
-      neighborhood: "Lower East Side",
-      itemCount: 6,
-      dueAt: new Date(now + 1000 * 60 * 18).toISOString(),
-      slaMinutesRemaining: 18,
-      status: "ready",
-      priority: "high",
-    },
-    {
-      id: "q_1005",
-      customerName: "S. Gomez",
-      neighborhood: "Long Island City",
-      itemCount: 4,
-      dueAt: new Date(now - 1000 * 60 * 35).toISOString(),
-      slaMinutesRemaining: -35,
-      status: "fulfilled",
-      priority: "low",
-    },
-  ];
-
-  const inventorySeed: InventoryItem[] = [
-    {
-      id: "inv_001",
-      name: "Country Sourdough Loaf",
-      stock: 32,
-      lowStockThreshold: 15,
-      available: true,
-      outOfStockReason: null,
-    },
-    {
-      id: "inv_002",
-      name: "Mini Chocolate Babka",
-      stock: 9,
-      lowStockThreshold: 10,
-      available: true,
-      outOfStockReason: null,
-    },
-    {
-      id: "inv_003",
-      name: "Half-Dozen Bagels",
-      stock: 0,
-      lowStockThreshold: 8,
-      available: false,
-      outOfStockReason: "Flour delivery delayed",
-    },
-    {
-      id: "inv_004",
-      name: "Wildflower Honey Jar",
-      stock: 14,
-      lowStockThreshold: 12,
-      available: true,
-      outOfStockReason: null,
-    },
-  ];
-
-  queueSeed.forEach((item) => queueOrders.set(item.id, item));
-  inventorySeed.forEach((item) => inventoryItems.set(item.id, item));
+function computeSlaMinutesRemaining(dueAt: string) {
+  return Math.round((new Date(dueAt).getTime() - Date.now()) / 60000);
 }
 
-seed();
-
-export function getQueueOrders() {
-  return Array.from(queueOrders.values()).sort((left, right) => left.dueAt.localeCompare(right.dueAt));
+function toQueueOrder(row: {
+  id: string;
+  customer_name: string;
+  neighborhood: string;
+  item_count: number;
+  due_at: string;
+  sla_minutes_remaining: number;
+  status: QueueStatus;
+  priority: QueuePriority;
+}): QueueOrder {
+  return {
+    id: row.id,
+    customerName: row.customer_name,
+    neighborhood: row.neighborhood,
+    itemCount: row.item_count,
+    dueAt: row.due_at,
+    slaMinutesRemaining: row.sla_minutes_remaining,
+    status: row.status,
+    priority: row.priority,
+  };
 }
 
-export function updateQueueStatus(id: string, status: QueueStatus) {
-  const record = queueOrders.get(id);
-  if (!record) return null;
-  record.status = status;
-  queueOrders.set(id, record);
-  return record;
+function toInventoryItem(row: {
+  id: string;
+  name: string;
+  stock: number;
+  low_stock_threshold: number;
+  available: boolean;
+  out_of_stock_reason: string | null;
+}): InventoryItem {
+  return {
+    id: row.id,
+    name: row.name,
+    stock: row.stock,
+    lowStockThreshold: row.low_stock_threshold,
+    available: row.available,
+    outOfStockReason: row.out_of_stock_reason,
+  };
 }
 
-export function getInventoryItems() {
-  return Array.from(inventoryItems.values()).sort((left, right) => left.name.localeCompare(right.name));
+export async function getQueueOrders(vendorId: string) {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("vendor_queue_orders")
+    .select("id,customer_name,neighborhood,item_count,due_at,sla_minutes_remaining,status,priority")
+    .eq("vendor_id", vendorId)
+    .order("due_at", { ascending: true });
+
+  if (error || !data) return [];
+  return data.map((item) =>
+    toQueueOrder({
+      ...item,
+      sla_minutes_remaining: computeSlaMinutesRemaining(item.due_at),
+    }),
+  );
 }
 
-export function updateInventoryItem(
+export async function updateQueueStatus(vendorId: string, id: string, status: QueueStatus) {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("vendor_queue_orders")
+    .update({ status, updated_at: new Date().toISOString() })
+    .eq("vendor_id", vendorId)
+    .eq("id", id)
+    .select("id,customer_name,neighborhood,item_count,due_at,sla_minutes_remaining,status,priority")
+    .maybeSingle();
+
+  if (error || !data) return null;
+  return toQueueOrder({
+    ...data,
+    sla_minutes_remaining: computeSlaMinutesRemaining(data.due_at),
+  });
+}
+
+export async function getInventoryItems(vendorId: string) {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("vendor_inventory_items")
+    .select("id,name,stock,low_stock_threshold,available,out_of_stock_reason")
+    .eq("vendor_id", vendorId)
+    .order("name", { ascending: true });
+
+  if (error || !data) return [];
+  return data.map(toInventoryItem);
+}
+
+export async function updateInventoryItem(
+  vendorId: string,
   id: string,
   patch: Partial<Pick<InventoryItem, "stock" | "available" | "outOfStockReason">>,
 ) {
-  const record = inventoryItems.get(id);
-  if (!record) return null;
+  const payload: {
+    stock?: number;
+    available?: boolean;
+    out_of_stock_reason?: string | null;
+    updated_at: string;
+  } = { updated_at: new Date().toISOString() };
+  if (typeof patch.stock === "number") payload.stock = Math.max(0, patch.stock);
+  if (typeof patch.available === "boolean") payload.available = patch.available;
+  if (patch.outOfStockReason !== undefined) payload.out_of_stock_reason = patch.outOfStockReason;
+  if (patch.available === true) payload.out_of_stock_reason = null;
 
-  if (typeof patch.stock === "number") {
-    record.stock = Math.max(0, patch.stock);
-  }
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("vendor_inventory_items")
+    .update(payload)
+    .eq("vendor_id", vendorId)
+    .eq("id", id)
+    .select("id,name,stock,low_stock_threshold,available,out_of_stock_reason")
+    .maybeSingle();
 
-  if (typeof patch.available === "boolean") {
-    record.available = patch.available;
-    if (patch.available) {
-      record.outOfStockReason = null;
-    }
-  }
-
-  if (patch.outOfStockReason !== undefined) {
-    record.outOfStockReason = patch.outOfStockReason;
-  }
-
-  inventoryItems.set(id, record);
-  return record;
+  if (error || !data) return null;
+  return toInventoryItem(data);
 }
 
-export function bulkSetInventoryAvailability(ids: string[], available: boolean) {
-  const updated: InventoryItem[] = [];
-  for (const id of ids) {
-    const record = inventoryItems.get(id);
-    if (!record) continue;
+export async function bulkSetInventoryAvailability(vendorId: string, ids: string[], available: boolean) {
+  if (ids.length === 0) return [];
+  const supabase = await createSupabaseServerClient();
+  const updatePayload = {
+    available,
+    out_of_stock_reason: available ? null : "Temporarily unavailable",
+    updated_at: new Date().toISOString(),
+  };
 
-    record.available = available;
-    if (available) {
-      record.outOfStockReason = null;
-    } else if (!record.outOfStockReason) {
-      record.outOfStockReason = "Temporarily unavailable";
-    }
-    inventoryItems.set(id, record);
-    updated.push(record);
-  }
+  const { error } = await supabase
+    .from("vendor_inventory_items")
+    .update(updatePayload)
+    .eq("vendor_id", vendorId)
+    .in("id", ids);
 
-  return updated;
+  if (error) return [];
+  const allItems = await getInventoryItems(vendorId);
+  const selected = new Set(ids);
+  return allItems.filter((item) => selected.has(item.id));
 }

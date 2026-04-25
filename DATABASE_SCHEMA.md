@@ -7,7 +7,10 @@ This document summarizes:
 
 ## 1) Current Implemented Schema (as of current migrations)
 
-Source: `supabase/migrations/202604220001_initial_schema.sql`
+Sources:
+
+- `supabase/migrations/202604220001_initial_schema.sql`
+- `supabase/migrations/202604251320_core_flows_schema.sql`
 
 ### `public.health_checks`
 
@@ -18,6 +21,34 @@ Source: `supabase/migrations/202604220001_initial_schema.sql`
 | `status` | `text` | `not null`, default `'ok'` |
 
 Row Level Security: **enabled**
+
+### Newly implemented core flow tables
+
+- `public.users`
+- `public.vendors`
+- `public.vendor_users`
+- `public.neighborhoods`
+- `public.plans`
+- `public.orders`
+- `public.order_timeline_events`
+- `public.vendor_queue_orders`
+- `public.vendor_inventory_items`
+
+### Implemented auth and policy behavior
+
+- Trigger `public.handle_auth_user_created()` syncs `auth.users` inserts to `public.users`.
+- RLS enabled on all core flow tables above.
+- Customer policies are scoped to `auth.uid()` for `users`, `orders`, and `order_timeline_events`.
+- Vendor operational policies are scoped by membership in `vendor_users` for queue/inventory access.
+- `neighborhoods` and `plans` are readable to all authenticated/anonymous users for discovery surfaces.
+
+### Implemented indexes
+
+- `idx_orders_user_id_created_at`
+- `idx_order_timeline_events_order_id_event_at`
+- `idx_vendor_queue_orders_vendor_status`
+- `idx_vendor_inventory_items_vendor_available`
+- `idx_neighborhoods_borough`
 
 ## 2) Target MVP Schema (planned)
 

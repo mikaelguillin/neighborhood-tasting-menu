@@ -3,9 +3,9 @@ import Link from "next/link";
 import { ArrowRight, Box, MapPin, Truck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NeighborhoodCard } from "@/components/neighborhood-card";
-import { NEIGHBORHOODS } from "@/data/neighborhoods";
 import heroBox from "@/assets/hero-box.jpg";
 import vendorPortrait from "@/assets/vendor-portrait.jpg";
+import { listNeighborhoods } from "@/lib/catalog-store";
 import { imageSrc } from "@/lib/image-src";
 
 export const metadata: Metadata = {
@@ -19,8 +19,16 @@ export const metadata: Metadata = {
   },
 };
 
-export default function HomePage() {
-  const featured = NEIGHBORHOODS.slice(0, 4);
+export default async function HomePage() {
+  const featured = (
+    await listNeighborhoods({
+      q: "",
+      borough: "all",
+      sort: "featured",
+      page: 1,
+      pageSize: 4,
+    })
+  ).items;
 
   return (
     <>

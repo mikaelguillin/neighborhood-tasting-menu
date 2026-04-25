@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 import { getQueueOrders } from "@/lib/vendor-ops-store";
+import { requireVendorMembership } from "@/lib/supabase-server";
 
 export async function GET() {
-  return NextResponse.json({ items: getQueueOrders() });
+  const auth = await requireVendorMembership();
+  if ("error" in auth) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
+  }
+
+  return NextResponse.json({ items: await getQueueOrders(auth.vendorId) });
 }

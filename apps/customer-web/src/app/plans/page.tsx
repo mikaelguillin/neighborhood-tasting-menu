@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { listPlans } from "@/lib/catalog-store";
+import type { PlanOption } from "@/lib/catalog-types";
 
 export const metadata: Metadata = {
   title: "Plans & pricing — Neighborhood Tasting Menu",
@@ -13,60 +15,16 @@ export const metadata: Metadata = {
   },
 };
 
-type Plan = {
-  id: "sampler" | "weekly" | "local-hero";
-  name: string;
-  cadence: string;
-  price: string;
-  blurb: string;
-  perks: string[];
-  featured?: boolean;
-};
+function centsToMoney(value: number) {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  }).format(value / 100);
+}
 
-const PLANS: Plan[] = [
-  {
-    id: "sampler",
-    name: "The Sampler",
-    cadence: "Every other week",
-    price: "$58",
-    blurb: "A taste of one new neighborhood twice a month. Great for solo eaters.",
-    perks: [
-      "5–6 curated items per box",
-      "Free delivery in pilot zones",
-      "Skip any week",
-      "Cancel any time",
-    ],
-  },
-  {
-    id: "weekly",
-    name: "The Weekly",
-    cadence: "Every Friday",
-    price: "$72",
-    blurb: "Our signature plan — a fresh neighborhood each week, packed for two.",
-    perks: [
-      "6–8 curated items per box",
-      "First delivery free",
-      "Priority delivery window",
-      "Member-only seasonal drops",
-    ],
-    featured: true,
-  },
-  {
-    id: "local-hero",
-    name: "The Local Hero",
-    cadence: "Every Friday + extras",
-    price: "$118",
-    blurb: "A larger box for households or small offices, with a quarterly maker visit.",
-    perks: [
-      "10–12 curated items per box",
-      "Free delivery, every week",
-      "Quarterly behind-the-counter visit",
-      "Gift one box per quarter",
-    ],
-  },
-];
-
-export default function PlansPage() {
+export default async function PlansPage() {
+  const plans: PlanOption[] = await listPlans();
   return (
     <>
       <section className="bg-canvas">
@@ -87,7 +45,7 @@ export default function PlansPage() {
       <section className="bg-canvas">
         <div className="mx-auto w-full max-w-[1440px] px-4 pb-20 pt-4 md:px-6 lg:px-10">
           <div className="grid gap-5 lg:grid-cols-3">
-            {PLANS.map((p) => (
+            {plans.map((p) => (
               <div
                 key={p.name}
                 className={
@@ -108,7 +66,7 @@ export default function PlansPage() {
 
                 <div className="mt-6 flex items-baseline gap-1.5">
                   <span className="text-4xl font-semibold tracking-tight text-foreground">
-                    {p.price}
+                    {centsToMoney(p.priceCents)}
                   </span>
                   <span className="text-sm text-foreground/60">/box</span>
                 </div>

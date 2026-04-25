@@ -1,7 +1,13 @@
 import { NextResponse } from "next/server";
 import { updateInventoryItem } from "@/lib/vendor-ops-store";
+import { requireVendorMembership } from "@/lib/supabase-server";
 
 export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
+  const auth = await requireVendorMembership();
+  if ("error" in auth) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
+  }
+
   const payload = (await request.json().catch(() => null)) as
     | { stock?: number; available?: boolean; outOfStockReason?: string | null }
     | null;
@@ -11,7 +17,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
   }
 
   const { id } = await context.params;
-  const updated = updateInventoryItem(id, {
+  const updated = await updateInventoryItem(auth.vendorId, id, {
     stock: typeof payload.stock === "number" ? payload.stock : undefined,
     available: typeof payload.available === "boolean" ? payload.available : undefined,
     outOfStockReason:

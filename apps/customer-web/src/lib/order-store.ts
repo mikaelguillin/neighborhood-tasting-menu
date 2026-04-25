@@ -1,4 +1,5 @@
-export type PlanId = "sampler" | "weekly" | "local-hero";
+import type { PlanId } from "@/lib/catalog-types";
+import { createSupabaseServerClient } from "@/lib/supabase-server";
 
 export type OrderStatus =
   | "placed"
@@ -29,12 +30,6 @@ export type OrderRecord = {
   deliveryWindow: string;
   createdAt: string;
   timeline: OrderTimelineEvent[];
-};
-
-const PLAN_CATALOG: Record<PlanId, { name: string; priceCents: number }> = {
-  sampler: { name: "The Sampler", priceCents: 5800 },
-  weekly: { name: "The Weekly", priceCents: 7200 },
-  "local-hero": { name: "The Local Hero", priceCents: 11800 },
 };
 
 const STATUS_FLOW: OrderStatus[] = [
@@ -68,8 +63,6 @@ const STATUS_META: Record<OrderStatus, { label: string; note: string }> = {
   },
 };
 
-const orders = new Map<string, OrderRecord>();
-
 function moneyTotals(subtotalCents: number, promoCode: string | null) {
   const deliveryFeeCents = 0;
   const serviceFeeCents = 400;
@@ -89,81 +82,152 @@ function createTimelineEvent(status: OrderStatus): OrderTimelineEvent {
   };
 }
 
-function seedDemoOrders() {
-  if (orders.size > 0) return;
+type DbTimelineRow = {
+  status: OrderStatus;
+  label: string;
+  note: string;
+  event_at: string;
+};
 
-  const createdAt = new Date(Date.now() - 1000 * 60 * 90).toISOString();
-  const base = PLAN_CATALOG.weekly;
-  const totals = moneyTotals(base.priceCents, null);
-  const id = "ord_demo_weekly";
+type DbOrderRow = {
+  id: string;
+  plan_id: PlanId;
+  plan_name: string;
+  status: OrderStatus;
+  subtotal_cents: number;
+  delivery_fee_cents: number;
+  service_fee_cents: number;
+  discount_cents: number;
+  total_cents: number;
+  promo_code: string | null;
+  address: string;
+  delivery_window: string;
+  created_at: string;
+  order_timeline_events?: DbTimelineRow[];
+};
 
-  orders.set(id, {
-    id,
-    planId: "weekly",
-    planName: base.name,
-    status: "in_preparation",
-    subtotalCents: base.priceCents,
-    ...totals,
-    promoCode: null,
-    address: "50-25 Center Blvd, Long Island City, NY",
-    deliveryWindow: "Friday 4:00 PM - 7:00 PM",
-    createdAt,
-    timeline: [
-      { ...createTimelineEvent("placed"), timestamp: new Date(Date.now() - 1000 * 60 * 90).toISOString() },
-      {
-        ...createTimelineEvent("payment_confirmed"),
-        timestamp: new Date(Date.now() - 1000 * 60 * 75).toISOString(),
-      },
-      {
-        ...createTimelineEvent("in_preparation"),
-        timestamp: new Date(Date.now() - 1000 * 60 * 40).toISOString(),
-      },
-    ],
-  });
+function toOrderRecord(row: DbOrderRow): OrderRecord {
+  return {
+    id: row.id,
+    planId: row.plan_id,
+    planName: row.plan_name,
+    status: row.status,
+    subtotalCents: row.subtotal_cents,
+    deliveryFeeCents: row.delivery_fee_cents,
+    serviceFeeCents: row.service_fee_cents,
+    discountCents: row.discount_cents,
+    totalCents: row.total_cents,
+    promoCode: row.promo_code,
+    address: row.address,
+    deliveryWindow: row.delivery_window,
+    createdAt: row.created_at,
+    timeline: (row.order_timeline_events ?? []).map((event) => ({
+      status: event.status,
+      label: event.label,
+      note: event.note,
+      timestamp: event.event_at,
+    })),
+  };
 }
 
-seedDemoOrders();
-
-export function listOrders() {
-  return Array.from(orders.values()).sort((left, right) => right.createdAt.localeCompare(left.createdAt));
+async function getPlanById(planId: PlanId) {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase.from("plans").select("id,name,price_cents").eq("id", planId).maybeSingle();
+  if (error || !data) return null;
+  return data;
 }
 
-export function getOrder(id: string) {
-  return orders.get(id) ?? null;
+export async function listOrders(userId: string) {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("orders")
+    .select(
+      "id,plan_id,plan_name,status,subtotal_cents,delivery_fee_cents,service_fee_cents,discount_cents,total_cents,promo_code,address,delivery_window,created_at,order_timeline_events(status,label,note,event_at)",
+    )
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .order("event_at", { foreignTable: "order_timeline_events", ascending: true });
+
+  if (error || !data) return [];
+  return (data as DbOrderRow[]).map(toOrderRecord);
 }
 
-export function createOrder(input: {
+export async function getOrder(id: string, userId: string) {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("orders")
+    .select(
+      "id,plan_id,plan_name,status,subtotal_cents,delivery_fee_cents,service_fee_cents,discount_cents,total_cents,promo_code,address,delivery_window,created_at,order_timeline_events(status,label,note,event_at)",
+    )
+    .eq("id", id)
+    .eq("user_id", userId)
+    .order("event_at", { foreignTable: "order_timeline_events", ascending: true })
+    .maybeSingle();
+
+  if (error || !data) return null;
+  return toOrderRecord(data as DbOrderRow);
+}
+
+export async function createOrder(userId: string, input: {
   planId: PlanId;
   promoCode?: string;
   address: string;
   deliveryWindow: string;
 }) {
-  const plan = PLAN_CATALOG[input.planId];
+  const plan = await getPlanById(input.planId);
+  if (!plan) {
+    throw new Error("Unknown plan");
+  }
   const promoCode = input.promoCode?.trim() ? input.promoCode.trim() : null;
-  const totals = moneyTotals(plan.priceCents, promoCode);
+  const totals = moneyTotals(plan.price_cents, promoCode);
   const id = `ord_${Date.now().toString(36)}`;
+  const supabase = await createSupabaseServerClient();
   const createdAt = new Date().toISOString();
 
-  const record: OrderRecord = {
-    id,
-    planId: input.planId,
-    planName: plan.name,
-    status: "placed",
-    subtotalCents: plan.priceCents,
-    ...totals,
-    promoCode,
-    address: input.address,
-    deliveryWindow: input.deliveryWindow,
-    createdAt,
-    timeline: [createTimelineEvent("placed")],
-  };
+  const timeline = createTimelineEvent("placed");
 
-  orders.set(id, record);
-  return record;
+  const { error: insertOrderError } = await supabase.from("orders").insert({
+    id,
+    user_id: userId,
+    plan_id: input.planId,
+    plan_name: plan.name,
+    status: "placed",
+    subtotal_cents: plan.price_cents,
+    delivery_fee_cents: totals.deliveryFeeCents,
+    service_fee_cents: totals.serviceFeeCents,
+    discount_cents: totals.discountCents,
+    total_cents: totals.totalCents,
+    promo_code: promoCode,
+    address: input.address,
+    delivery_window: input.deliveryWindow,
+    created_at: createdAt,
+  });
+
+  if (insertOrderError) {
+    throw insertOrderError;
+  }
+
+  const { error: timelineError } = await supabase.from("order_timeline_events").insert({
+    order_id: id,
+    status: timeline.status,
+    label: timeline.label,
+    note: timeline.note,
+    event_at: timeline.timestamp,
+  });
+
+  if (timelineError) {
+    throw timelineError;
+  }
+
+  const order = await getOrder(id, userId);
+  if (!order) {
+    throw new Error("Failed to load created order");
+  }
+  return order;
 }
 
-export function advanceOrderStatus(id: string) {
-  const order = orders.get(id);
+export async function advanceOrderStatus(id: string, userId: string) {
+  const order = await getOrder(id, userId);
   if (!order) return null;
 
   const currentIndex = STATUS_FLOW.indexOf(order.status);
@@ -173,14 +237,33 @@ export function advanceOrderStatus(id: string) {
     return order;
   }
 
-  order.status = next;
-  order.timeline.push(createTimelineEvent(next));
-  orders.set(id, order);
-  return order;
-}
+  const supabase = await createSupabaseServerClient();
+  const nextTimeline = createTimelineEvent(next);
 
-export const PLAN_OPTIONS = Object.entries(PLAN_CATALOG).map(([id, plan]) => ({
-  id: id as PlanId,
-  name: plan.name,
-  priceCents: plan.priceCents,
-}));
+  const { error: updateError } = await supabase
+    .from("orders")
+    .update({
+      status: next,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", id)
+    .eq("user_id", userId);
+
+  if (updateError) {
+    throw updateError;
+  }
+
+  const { error: timelineError } = await supabase.from("order_timeline_events").insert({
+    order_id: id,
+    status: nextTimeline.status,
+    label: nextTimeline.label,
+    note: nextTimeline.note,
+    event_at: nextTimeline.timestamp,
+  });
+
+  if (timelineError) {
+    throw timelineError;
+  }
+
+  return getOrder(id, userId);
+}

@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { Neighborhood } from "@/data/neighborhoods";
+import type { Neighborhood } from "@/lib/catalog-types";
 
 type DiscoveryResponse = {
   items: Neighborhood[];

@@ -22,7 +22,7 @@ const formSchema = z
 
 export function RegisterForm() {
   const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
+    resolver: zodResolver(formSchema as never),
     defaultValues: {
       email: "",
       password: "",

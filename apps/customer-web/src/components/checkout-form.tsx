@@ -2,19 +2,14 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AlertTriangle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import type { PlanOption, PlanId } from "@/lib/catalog-types";
 
-type PlanId = "sampler" | "weekly" | "local-hero";
-
-const PLAN_OPTIONS: { id: PlanId; label: string; priceCents: number }[] = [
-  { id: "sampler", label: "The Sampler", priceCents: 5800 },
-  { id: "weekly", label: "The Weekly", priceCents: 7200 },
-  { id: "local-hero", label: "The Local Hero", priceCents: 11800 },
-];
+type PlanChoice = { id: PlanId; label: string; priceCents: number };
 
 function centsToMoney(value: number) {
   return new Intl.NumberFormat("en-US", {
@@ -27,25 +22,54 @@ export function CheckoutForm() {
   const params = useSearchParams();
   const router = useRouter();
   const defaultPlan = (params.get("plan") as PlanId) || "weekly";
+  const [planOptions, setPlanOptions] = useState<PlanChoice[]>([]);
+  const [plansLoading, setPlansLoading] = useState(true);
 
-  const [planId, setPlanId] = useState<PlanId>(
-    PLAN_OPTIONS.some((option) => option.id === defaultPlan) ? defaultPlan : "weekly",
-  );
+  const [planId, setPlanId] = useState<PlanId>("weekly");
   const [promoCode, setPromoCode] = useState("");
   const [address, setAddress] = useState("50-25 Center Blvd, Long Island City, NY");
   const [deliveryWindow, setDeliveryWindow] = useState("Friday 4:00 PM - 7:00 PM");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const selectedPlan = PLAN_OPTIONS.find((option) => option.id === planId) ?? PLAN_OPTIONS[1];
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadPlans() {
+      try {
+        const response = await fetch("/api/plans");
+        const payload = (await response.json().catch(() => null)) as { items?: PlanOption[] } | null;
+        if (!response.ok || !payload?.items || cancelled) return;
+
+        const options = payload.items.map((plan) => ({
+          id: plan.id,
+          label: plan.name,
+          priceCents: plan.priceCents,
+        }));
+        setPlanOptions(options);
+        const defaultExists = options.some((option) => option.id === defaultPlan);
+        setPlanId(defaultExists ? defaultPlan : options[0]?.id ?? "weekly");
+      } finally {
+        if (!cancelled) setPlansLoading(false);
+      }
+    }
+
+    loadPlans();
+    return () => {
+      cancelled = true;
+    };
+  }, [defaultPlan]);
+
+  const selectedPlan = planOptions.find((option) => option.id === planId) ?? planOptions[0];
+  const basePriceCents = selectedPlan?.priceCents ?? 0;
   const deliveryFeeCents = 0;
   const serviceFeeCents = 400;
-  const discountCents = promoCode.trim().toUpperCase() === "WELCOME10" ? Math.round(selectedPlan.priceCents * 0.1) : 0;
-  const totalCents = selectedPlan.priceCents + deliveryFeeCents + serviceFeeCents - discountCents;
+  const discountCents = promoCode.trim().toUpperCase() === "WELCOME10" ? Math.round(basePriceCents * 0.1) : 0;
+  const totalCents = basePriceCents + deliveryFeeCents + serviceFeeCents - discountCents;
 
   const ready = useMemo(
-    () => address.trim().length > 8 && deliveryWindow.trim().length > 3 && !submitting,
-    [address, deliveryWindow, submitting],
+    () => address.trim().length > 8 && deliveryWindow.trim().length > 3 && !submitting && !plansLoading && !!selectedPlan,
+    [address, deliveryWindow, submitting, plansLoading, selectedPlan],
   );
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -91,7 +115,7 @@ export function CheckoutForm() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {PLAN_OPTIONS.map((plan) => (
+              {planOptions.map((plan) => (
                 <SelectItem key={plan.id} value={plan.id}>
                   {plan.label} ({centsToMoney(plan.priceCents)})
                 </SelectItem>
@@ -142,12 +166,14 @@ export function CheckoutForm() {
 
       <aside className="h-fit rounded-[14px] bg-card p-6 shadow-[var(--shadow-card)]">
         <h2 className="text-xl font-semibold tracking-tight text-brand">Order summary</h2>
-        <p className="mt-2 text-sm text-foreground/70">{selectedPlan.label}</p>
+        <p className="mt-2 text-sm text-foreground/70">
+          {plansLoading ? "Loading plan..." : (selectedPlan?.label ?? "No plans available")}
+        </p>
 
         <dl className="mt-5 space-y-3 text-sm">
           <div className="flex items-center justify-between">
             <dt className="text-foreground/70">Subtotal</dt>
-            <dd>{centsToMoney(selectedPlan.priceCents)}</dd>
+            <dd>{centsToMoney(basePriceCents)}</dd>
           </div>
           <div className="flex items-center justify-between">
             <dt className="text-foreground/70">Delivery</dt>

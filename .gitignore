@@ -34,3 +34,6 @@ dist-ssr
 .corepack
 .pnpm
 .pnpm-store
+
+*.env
+tsconfig.tsbuildinfo

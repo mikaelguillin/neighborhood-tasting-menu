@@ -3,18 +3,19 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { getNeighborhood, NEIGHBORHOODS } from "@/data/neighborhoods";
+import { getNeighborhoodBySlug, listNeighborhoodSlugs, listNeighborhoods } from "@/lib/catalog-store";
 import { imageSrc } from "@/lib/image-src";
 
 type Props = { params: Promise<{ slug: string }> };
 
-export function generateStaticParams() {
-  return NEIGHBORHOODS.map((n) => ({ slug: n.slug }));
+export async function generateStaticParams() {
+  const slugs = await listNeighborhoodSlugs();
+  return slugs.map((slug) => ({ slug }));
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const n = getNeighborhood(slug);
+  const n = await getNeighborhoodBySlug(slug);
   if (!n) {
     return { title: "Neighborhood not found — Neighborhood Tasting Menu" };
   }
@@ -35,8 +36,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function NeighborhoodDetailPage({ params }: Props) {
   const { slug } = await params;
-  const n = getNeighborhood(slug);
+  const n = await getNeighborhoodBySlug(slug);
   if (!n) notFound();
+  const otherNeighborhoods = (
+    await listNeighborhoods({ q: "", borough: "all", sort: "featured", page: 1, pageSize: 100 })
+  ).items
+    .filter((x) => x.slug !== n.slug)
+    .slice(0, 3);
 
   return (
     <>
@@ -150,9 +156,7 @@ export default async function NeighborhoodDetailPage({ params }: Props) {
             Other neighborhoods on the rotation.
           </h2>
           <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {NEIGHBORHOODS.filter((x) => x.slug !== n.slug)
-              .slice(0, 3)
-              .map((other) => (
+            {otherNeighborhoods.map((other) => (
                 <Link
                   key={other.slug}
                   href={`/neighborhoods/${other.slug}`}
@@ -172,7 +176,7 @@ export default async function NeighborhoodDetailPage({ params }: Props) {
                     <p className="mt-0.5 text-xs text-foreground/60">{other.tagline}</p>
                   </div>
                 </Link>
-              ))}
+            ))}
           </div>
         </div>
       </section>

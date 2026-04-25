@@ -68,6 +68,29 @@ Status: Updated to reflect current planning artifacts.
   - `apps/vendor-portal/src/app/(main)/dashboard/default/_components/ops-metric-cards.tsx`
 - Added `apps/vendor-portal/src/lib/vendor-ops-store.ts` in-memory operational data model to support daily queue/inventory workflows and deterministic transitions.
 
+### 2026-04-25 Core Flows DB Wiring
+
+- Added `supabase/migrations/202604251320_core_flows_schema.sql` with core customer/vendor tables, indexes, auth sync trigger, and RLS policies.
+- Expanded `supabase/seed.sql` with development fixtures for:
+  - customer and vendor auth users
+  - vendor membership
+  - neighborhood discovery catalog and plan catalog
+  - customer orders/timeline and vendor queue/inventory demo data
+- Replaced customer in-memory/static core sources with DB-backed data access:
+  - orders and timeline in `apps/customer-web/src/lib/order-store.ts`
+  - discovery API in `apps/customer-web/src/app/api/neighborhoods/route.ts`
+  - new plan API in `apps/customer-web/src/app/api/plans/route.ts`
+  - home, neighborhood detail, plans, and checkout now load catalog data from DB-backed sources
+- Added Supabase auth/database helpers for customer app:
+  - `apps/customer-web/src/lib/supabase-server.ts`
+  - `apps/customer-web/src/lib/supabase-browser.ts`
+- Added Supabase auth/database helpers for vendor app:
+  - `apps/vendor-portal/src/lib/supabase-server.ts`
+  - `apps/vendor-portal/src/lib/supabase-browser.ts`
+- Replaced vendor in-memory ops store with DB-backed repository in `apps/vendor-portal/src/lib/vendor-ops-store.ts`.
+- Updated vendor ops APIs to enforce authenticated vendor membership and vendor-scoped reads/writes.
+- Wired customer and vendor login forms to Supabase email/password sign-in.
+
 ### Notes
 
 - The MVP planning document indicates all core MVP tracks are complete.
@@ -105,7 +128,7 @@ Status: Completed (initial Phase 0 baseline)
 - Added baseline API test wiring (`apps/api/src/health.test.ts`) and workspace test command support.
 - Added `supabase/` bootstrap with migration placeholder, `seed.sql`, and workflow README.
 - Added root scripts for Supabase reset/push workflows.
-- Validation note: `pnpm install` currently fails in this environment due filesystem permission constraints while linking one package (`resolve`) into `node_modules`.
+- Validation note: workspace dependency install and customer app typecheck now run successfully in this environment.
 
 ### Next up (Phase 0 continuation)
 
