@@ -15,12 +15,22 @@ Status: Updated to reflect current planning artifacts.
 
 ### Planned (Next Delivery Track)
 
-- [ ] Sprint 1: Customer discovery and item experience.
+- [~] Sprint 1: Customer discovery and item experience. (in progress)
 - [ ] Sprint 2: Cart, checkout, and order lifecycle transparency.
 - [ ] Sprint 3: Vendor daily operations and queue management.
 - [ ] Sprint 4: Merchant growth tools and customer trust features.
 - [ ] Sprint 5: Notifications, retention, and personalization.
 - [ ] Sprint 6: Hardening, accessibility, and launch readiness.
+
+### 2026-04-25 Sprint 1 Start
+
+- Added a customer discovery surface in `apps/customer-web/src/app/neighborhoods/page.tsx` with:
+  - text search across neighborhood, item, and vendor metadata
+  - borough filtering and sort options (featured/name)
+  - paginated results with count + page controls
+  - polished loading, empty, and error list states
+- Added `apps/customer-web/src/app/api/neighborhoods/route.ts` query endpoint to support filter/sort/pagination contracts from the UI.
+- Added `apps/api/src/index.ts` `/neighborhoods` endpoint with validated query params and paginated response shape to begin formalizing Sprint 1 API behavior.
 
 ### Notes
 

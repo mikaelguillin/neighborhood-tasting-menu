@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
-import { NeighborhoodCard } from "@/components/neighborhood-card";
-import { NEIGHBORHOODS } from "@/data/neighborhoods";
+import { NeighborhoodDiscovery } from "@/components/neighborhood-discovery";
 
 export const metadata: Metadata = {
   title: "Neighborhoods — Neighborhood Tasting Menu",
@@ -33,11 +32,7 @@ export default function NeighborhoodsPage() {
 
       <section className="bg-canvas">
         <div className="mx-auto w-full max-w-[1440px] px-4 pb-20 pt-8 md:px-6 lg:px-10 lg:pb-28">
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {NEIGHBORHOODS.map((n) => (
-              <NeighborhoodCard key={n.slug} n={n} />
-            ))}
-          </div>
+          <NeighborhoodDiscovery />
         </div>
       </section>
     </>
