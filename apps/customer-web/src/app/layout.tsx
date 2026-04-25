@@ -24,7 +24,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className="bg-canvas">
+      <body className="bg-canvas" suppressHydrationWarning>
         <div className="flex min-h-screen flex-col bg-canvas">
           <SiteHeader />
           <main className="flex-1">{children}</main>
