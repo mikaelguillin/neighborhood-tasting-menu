@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 const NAV_LINKS = [
   { href: "/", label: "Home" },
   { href: "/neighborhoods", label: "Neighborhoods" },
+  { href: "/orders", label: "Orders" },
   { href: "/how-it-works", label: "How it works" },
   { href: "/plans", label: "Plans" },
 ] as const;
@@ -71,7 +72,7 @@ export function SiteHeader() {
             <Link href="/sign-in">Sign in</Link>
           </Button>
           <Button variant="black" size="sm" asChild>
-            <Link href="/plans">Subscribe</Link>
+            <Link href="/checkout">Checkout</Link>
           </Button>
         </div>
 
@@ -105,8 +106,8 @@ export function SiteHeader() {
                 </Link>
               </Button>
               <Button variant="black" size="sm" className="flex-1" asChild>
-                <Link href="/plans" onClick={() => setOpen(false)}>
-                  Subscribe
+                <Link href="/checkout" onClick={() => setOpen(false)}>
+                  Checkout
                 </Link>
               </Button>
             </div>

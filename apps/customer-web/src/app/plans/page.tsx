@@ -14,6 +14,7 @@ export const metadata: Metadata = {
 };
 
 type Plan = {
+  id: "sampler" | "weekly" | "local-hero";
   name: string;
   cadence: string;
   price: string;
@@ -24,6 +25,7 @@ type Plan = {
 
 const PLANS: Plan[] = [
   {
+    id: "sampler",
     name: "The Sampler",
     cadence: "Every other week",
     price: "$58",
@@ -36,6 +38,7 @@ const PLANS: Plan[] = [
     ],
   },
   {
+    id: "weekly",
     name: "The Weekly",
     cadence: "Every Friday",
     price: "$72",
@@ -49,6 +52,7 @@ const PLANS: Plan[] = [
     featured: true,
   },
   {
+    id: "local-hero",
     name: "The Local Hero",
     cadence: "Every Friday + extras",
     price: "$118",
@@ -127,7 +131,7 @@ export default function PlansPage() {
                     variant={p.featured ? "default" : "outline"}
                     className="w-full"
                   >
-                    <Link href="/plans">Choose {p.name}</Link>
+                    <Link href={`/checkout?plan=${p.id}`}>Choose {p.name}</Link>
                   </Button>
                 </div>
               </div>

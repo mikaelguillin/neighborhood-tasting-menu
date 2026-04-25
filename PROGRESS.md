@@ -16,7 +16,7 @@ Status: Updated to reflect current planning artifacts.
 ### Planned (Next Delivery Track)
 
 - [~] Sprint 1: Customer discovery and item experience. (in progress)
-- [ ] Sprint 2: Cart, checkout, and order lifecycle transparency.
+- [~] Sprint 2: Cart, checkout, and order lifecycle transparency. (in progress)
 - [ ] Sprint 3: Vendor daily operations and queue management.
 - [ ] Sprint 4: Merchant growth tools and customer trust features.
 - [ ] Sprint 5: Notifications, retention, and personalization.
@@ -31,6 +31,24 @@ Status: Updated to reflect current planning artifacts.
   - polished loading, empty, and error list states
 - Added `apps/customer-web/src/app/api/neighborhoods/route.ts` query endpoint to support filter/sort/pagination contracts from the UI.
 - Added `apps/api/src/index.ts` `/neighborhoods` endpoint with validated query params and paginated response shape to begin formalizing Sprint 1 API behavior.
+
+### 2026-04-25 Sprint 2 Start
+
+- Added `apps/customer-web/src/app/checkout/page.tsx` and `apps/customer-web/src/components/checkout-form.tsx` for a resilient checkout flow with:
+  - plan selection and delivery details capture
+  - promo placeholder support (`WELCOME10`)
+  - deterministic fee/total calculations and guarded submit states
+- Added customer order APIs:
+  - `apps/customer-web/src/app/api/orders/route.ts` for list/create order
+  - `apps/customer-web/src/app/api/orders/[id]/route.ts` for order detail
+  - `apps/customer-web/src/app/api/orders/[id]/advance/route.ts` for deterministic status progression in timeline demos/tests
+- Added order lifecycle UI:
+  - `apps/customer-web/src/app/orders/page.tsx` + `apps/customer-web/src/components/orders-list.tsx`
+  - `apps/customer-web/src/app/orders/[id]/page.tsx` + `apps/customer-web/src/components/order-timeline.tsx`
+- Added `apps/customer-web/src/lib/order-store.ts` in-memory order/state model to support explicit, testable order progression.
+- Updated navigation and plan conversion paths:
+  - `apps/customer-web/src/components/site-header.tsx` now includes `Orders` and routes CTA to `Checkout`
+  - `apps/customer-web/src/app/plans/page.tsx` plan CTAs now deep-link into checkout with plan preselection
 
 ### Notes
 
