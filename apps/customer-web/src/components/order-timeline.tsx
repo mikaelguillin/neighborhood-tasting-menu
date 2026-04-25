@@ -16,11 +16,18 @@ type OrderDetail = {
   id: string;
   planName: string;
   status: string;
+  paymentMethod: "card" | "apple_pay" | "cash";
   address: string;
   deliveryWindow: string;
   totalCents: number;
   timeline: TimelineEvent[];
 };
+
+function paymentMethodLabel(method: OrderDetail["paymentMethod"]) {
+  if (method === "apple_pay") return "Apple Pay";
+  if (method === "cash") return "Cash on delivery";
+  return "Card";
+}
 
 function centsToMoney(value: number) {
   return new Intl.NumberFormat("en-US", {
@@ -93,6 +100,9 @@ export function OrderTimeline({ orderId }: { orderId: string }) {
         <h1 className="mt-2 text-3xl font-semibold tracking-tight text-brand">{order.planName}</h1>
         <p className="mt-2 text-sm text-foreground/70">
           {order.address} - {order.deliveryWindow}
+        </p>
+        <p className="mt-1 text-sm text-foreground/70">
+          Payment method: {paymentMethodLabel(order.paymentMethod)}
         </p>
         <p className="mt-3 text-base font-semibold">{centsToMoney(order.totalCents)}</p>
         <div className="mt-5 flex flex-wrap items-center gap-3">

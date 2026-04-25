@@ -1,15 +1,36 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, Loader2 } from "lucide-react";
+import { AlertTriangle, CalendarDays, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import type { PlanOption, PlanId } from "@/lib/catalog-types";
 
 type PlanChoice = { id: PlanId; label: string; priceCents: number };
+type PaymentMethod = "card" | "apple_pay" | "cash";
+
+type ProfileResponse = {
+  defaultAddress: string | null;
+};
+
+type CheckoutFormProps = {
+  defaultPlan?: PlanId | null;
+};
 
 function centsToMoney(value: number) {
   return new Intl.NumberFormat("en-US", {
@@ -18,19 +39,30 @@ function centsToMoney(value: number) {
   }).format(value / 100);
 }
 
-export function CheckoutForm() {
-  const params = useSearchParams();
+function formatDeliveryDate(value: Date) {
+  return new Intl.DateTimeFormat("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(value);
+}
+
+export function CheckoutForm({ defaultPlan = null }: CheckoutFormProps) {
   const router = useRouter();
-  const defaultPlan = (params.get("plan") as PlanId) || "weekly";
   const [planOptions, setPlanOptions] = useState<PlanChoice[]>([]);
   const [plansLoading, setPlansLoading] = useState(true);
+  const [profileLoading, setProfileLoading] = useState(true);
 
-  const [planId, setPlanId] = useState<PlanId>("weekly");
+  const [planId, setPlanId] = useState<PlanId | "">("");
   const [promoCode, setPromoCode] = useState("");
-  const [address, setAddress] = useState("50-25 Center Blvd, Long Island City, NY");
-  const [deliveryWindow, setDeliveryWindow] = useState("Friday 4:00 PM - 7:00 PM");
+  const [address, setAddress] = useState("");
+  const [deliveryWindow, setDeliveryWindow] = useState("");
+  const [deliveryDate, setDeliveryDate] = useState<Date | undefined>();
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | "">("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [needsSignIn, setNeedsSignIn] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -38,7 +70,9 @@ export function CheckoutForm() {
     async function loadPlans() {
       try {
         const response = await fetch("/api/plans");
-        const payload = (await response.json().catch(() => null)) as { items?: PlanOption[] } | null;
+        const payload = (await response.json().catch(() => null)) as {
+          items?: PlanOption[];
+        } | null;
         if (!response.ok || !payload?.items || cancelled) return;
 
         const options = payload.items.map((plan) => ({
@@ -47,8 +81,12 @@ export function CheckoutForm() {
           priceCents: plan.priceCents,
         }));
         setPlanOptions(options);
-        const defaultExists = options.some((option) => option.id === defaultPlan);
-        setPlanId(defaultExists ? defaultPlan : options[0]?.id ?? "weekly");
+        const defaultExists = defaultPlan
+          ? options.some((option) => option.id === defaultPlan)
+          : false;
+        setPlanId(
+          defaultExists ? (defaultPlan as PlanId) : (options[0]?.id ?? ""),
+        );
       } finally {
         if (!cancelled) setPlansLoading(false);
       }
@@ -60,16 +98,70 @@ export function CheckoutForm() {
     };
   }, [defaultPlan]);
 
-  const selectedPlan = planOptions.find((option) => option.id === planId) ?? planOptions[0];
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadProfile() {
+      try {
+        const response = await fetch("/api/profile");
+        if (cancelled) return;
+
+        if (response.status === 401) {
+          setNeedsSignIn(true);
+          return;
+        }
+        if (!response.ok) return;
+
+        const payload = (await response
+          .json()
+          .catch(() => null)) as ProfileResponse | null;
+        if (cancelled || !payload?.defaultAddress) return;
+        setAddress((current) =>
+          current.trim().length === 0
+            ? (payload.defaultAddress ?? "")
+            : current,
+        );
+      } finally {
+        if (!cancelled) setProfileLoading(false);
+      }
+    }
+
+    loadProfile();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const selectedPlan =
+    planOptions.find((option) => option.id === planId) ?? planOptions[0];
   const basePriceCents = selectedPlan?.priceCents ?? 0;
   const deliveryFeeCents = 0;
   const serviceFeeCents = 400;
-  const discountCents = promoCode.trim().toUpperCase() === "WELCOME10" ? Math.round(basePriceCents * 0.1) : 0;
-  const totalCents = basePriceCents + deliveryFeeCents + serviceFeeCents - discountCents;
+  const discountCents =
+    promoCode.trim().toUpperCase() === "WELCOME10"
+      ? Math.round(basePriceCents * 0.1)
+      : 0;
+  const totalCents =
+    basePriceCents + deliveryFeeCents + serviceFeeCents - discountCents;
 
   const ready = useMemo(
-    () => address.trim().length > 8 && deliveryWindow.trim().length > 3 && !submitting && !plansLoading && !!selectedPlan,
-    [address, deliveryWindow, submitting, plansLoading, selectedPlan],
+    () =>
+      address.trim().length > 8 &&
+      deliveryWindow.trim().length > 3 &&
+      !!paymentMethod &&
+      !submitting &&
+      !plansLoading &&
+      !profileLoading &&
+      !!selectedPlan,
+    [
+      address,
+      deliveryWindow,
+      paymentMethod,
+      submitting,
+      plansLoading,
+      profileLoading,
+      selectedPlan,
+    ],
   );
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -86,31 +178,55 @@ export function CheckoutForm() {
           promoCode: promoCode.trim() || undefined,
           address: address.trim(),
           deliveryWindow: deliveryWindow.trim(),
+          paymentMethod,
         }),
       });
 
       if (!response.ok) {
-        const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+        const payload = (await response.json().catch(() => null)) as {
+          error?: string;
+        } | null;
+        if (response.status === 401) {
+          setNeedsSignIn(true);
+        }
         throw new Error(payload?.error ?? "Checkout failed");
       }
 
       const order = (await response.json()) as { id: string };
       router.push(`/orders/${order.id}`);
     } catch (submitError) {
-      const message = submitError instanceof Error ? submitError.message : "Checkout failed";
+      const message =
+        submitError instanceof Error ? submitError.message : "Checkout failed";
       setError(message);
       setSubmitting(false);
     }
   }
 
   return (
-    <form onSubmit={onSubmit} className="mt-10 grid gap-6 lg:grid-cols-[1.4fr_1fr]">
+    <form
+      onSubmit={onSubmit}
+      className="mt-10 grid gap-6 lg:grid-cols-[1.4fr_1fr]"
+    >
       <div className="space-y-5 rounded-[14px] bg-card p-6 shadow-[var(--shadow-card)]">
-        <h2 className="text-2xl font-semibold tracking-tight text-brand">Delivery details</h2>
+        <h2 className="text-2xl font-semibold tracking-tight text-brand">
+          Delivery details
+        </h2>
+        {needsSignIn && (
+          <div className="rounded-[10px] border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-900">
+            Sign in is required to place your order.{" "}
+            <Link href="/sign-in" className="font-semibold underline">
+              Go to sign in
+            </Link>
+            .
+          </div>
+        )}
 
-        <label className="space-y-2">
+        <label className="block space-y-2">
           <span className="text-sm font-medium text-foreground/80">Plan</span>
-          <Select value={planId} onValueChange={(value: PlanId) => setPlanId(value)}>
+          <Select
+            value={planId}
+            onValueChange={(value: PlanId) => setPlanId(value)}
+          >
             <SelectTrigger className="h-10">
               <SelectValue />
             </SelectTrigger>
@@ -124,8 +240,10 @@ export function CheckoutForm() {
           </Select>
         </label>
 
-        <label className="space-y-2">
-          <span className="text-sm font-medium text-foreground/80">Delivery address</span>
+        <label className="block space-y-2">
+          <span className="text-sm font-medium text-foreground/80">
+            Delivery address
+          </span>
           <Input
             value={address}
             onChange={(event) => setAddress(event.target.value)}
@@ -134,18 +252,69 @@ export function CheckoutForm() {
           />
         </label>
 
-        <label className="space-y-2">
-          <span className="text-sm font-medium text-foreground/80">Delivery window</span>
-          <Input
-            value={deliveryWindow}
-            onChange={(event) => setDeliveryWindow(event.target.value)}
-            className="h-10"
-            placeholder="Friday 4:00 PM - 7:00 PM"
-          />
+        <label className="block space-y-2">
+          <span className="text-sm font-medium text-foreground/80">
+            Delivery window
+          </span>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                type="button"
+                variant="outline"
+                className="h-10 w-full justify-start text-left font-normal"
+              >
+                <CalendarDays className="mr-2 h-4 w-4" />
+                {deliveryDate ? (
+                  formatDeliveryDate(deliveryDate)
+                ) : (
+                  <span className="text-muted-foreground">
+                    Select a delivery date
+                  </span>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={deliveryDate}
+                onSelect={(date) => {
+                  setDeliveryDate(date);
+                  setDeliveryWindow(
+                    date ? `${formatDeliveryDate(date)} 4:00 PM - 7:00 PM` : "",
+                  );
+                }}
+                disabled={(date) =>
+                  date < new Date(new Date().setHours(0, 0, 0, 0))
+                }
+                initialFocus
+              />
+            </PopoverContent>
+          </Popover>
         </label>
 
-        <label className="space-y-2">
-          <span className="text-sm font-medium text-foreground/80">Promo code (optional)</span>
+        <label className="block space-y-2">
+          <span className="text-sm font-medium text-foreground/80">
+            Payment method
+          </span>
+          <Select
+            value={paymentMethod}
+            onValueChange={(value: PaymentMethod) => setPaymentMethod(value)}
+          >
+            <SelectTrigger className="h-10">
+              <SelectValue placeholder="Choose a payment method" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="card">Card</SelectItem>
+              <SelectItem value="apple_pay">Apple Pay</SelectItem>
+              <SelectItem value="cash">Cash on delivery</SelectItem>
+            </SelectContent>
+          </Select>
+        </label>
+
+        <label className="block space-y-2">
+          <span className="text-sm font-medium text-foreground/80">
+            Promo code (optional)
+          </span>
           <Input
             value={promoCode}
             onChange={(event) => setPromoCode(event.target.value)}
@@ -165,9 +334,13 @@ export function CheckoutForm() {
       </div>
 
       <aside className="h-fit rounded-[14px] bg-card p-6 shadow-[var(--shadow-card)]">
-        <h2 className="text-xl font-semibold tracking-tight text-brand">Order summary</h2>
+        <h2 className="text-xl font-semibold tracking-tight text-brand">
+          Order summary
+        </h2>
         <p className="mt-2 text-sm text-foreground/70">
-          {plansLoading ? "Loading plan..." : (selectedPlan?.label ?? "No plans available")}
+          {plansLoading || profileLoading
+            ? "Loading checkout..."
+            : (selectedPlan?.label ?? "No plans available")}
         </p>
 
         <dl className="mt-5 space-y-3 text-sm">
@@ -177,7 +350,9 @@ export function CheckoutForm() {
           </div>
           <div className="flex items-center justify-between">
             <dt className="text-foreground/70">Delivery</dt>
-            <dd>{deliveryFeeCents === 0 ? "Free" : centsToMoney(deliveryFeeCents)}</dd>
+            <dd>
+              {deliveryFeeCents === 0 ? "Free" : centsToMoney(deliveryFeeCents)}
+            </dd>
           </div>
           <div className="flex items-center justify-between">
             <dt className="text-foreground/70">Service fee</dt>

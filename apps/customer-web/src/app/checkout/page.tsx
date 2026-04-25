@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { CheckoutForm } from "@/components/checkout-form";
+import type { PlanId } from "@/lib/catalog-types";
 
 export const metadata: Metadata = {
   title: "Checkout - Neighborhood Tasting Menu",
@@ -7,7 +8,20 @@ export const metadata: Metadata = {
     "Complete your box checkout with delivery details, promo placeholder support, and confirmation.",
 };
 
-export default function CheckoutPage() {
+const VALID_PLAN_IDS: PlanId[] = ["sampler", "weekly", "local-hero"];
+
+function toPlanId(value: string | string[] | undefined): PlanId | null {
+  if (typeof value !== "string") return null;
+  return VALID_PLAN_IDS.includes(value as PlanId) ? (value as PlanId) : null;
+}
+
+export default function CheckoutPage({
+  searchParams,
+}: {
+  searchParams?: { plan?: string | string[] };
+}) {
+  const selectedPlanId = toPlanId(searchParams?.plan);
+
   return (
     <section className="bg-canvas">
       <div className="mx-auto w-full max-w-[1100px] px-4 pb-20 pt-12 md:px-6 lg:px-10 lg:pt-16">
@@ -22,7 +36,7 @@ export default function CheckoutPage() {
           </p>
         </div>
 
-        <CheckoutForm />
+        <CheckoutForm defaultPlan={selectedPlanId} />
       </div>
     </section>
   );

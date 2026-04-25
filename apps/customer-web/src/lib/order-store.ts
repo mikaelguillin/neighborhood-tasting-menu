@@ -8,6 +8,8 @@ export type OrderStatus =
   | "out_for_delivery"
   | "delivered";
 
+export type PaymentMethod = "card" | "apple_pay" | "cash";
+
 export type OrderTimelineEvent = {
   status: OrderStatus;
   label: string;
@@ -26,6 +28,7 @@ export type OrderRecord = {
   discountCents: number;
   totalCents: number;
   promoCode: string | null;
+  paymentMethod: PaymentMethod;
   address: string;
   deliveryWindow: string;
   createdAt: string;
@@ -47,7 +50,7 @@ const STATUS_META: Record<OrderStatus, { label: string; note: string }> = {
   },
   payment_confirmed: {
     label: "Payment confirmed",
-    note: "Your payment was processed and your order is now locked in.",
+    note: "Payment confirmation recorded for your selected checkout method.",
   },
   in_preparation: {
     label: "In preparation",
@@ -66,8 +69,12 @@ const STATUS_META: Record<OrderStatus, { label: string; note: string }> = {
 function moneyTotals(subtotalCents: number, promoCode: string | null) {
   const deliveryFeeCents = 0;
   const serviceFeeCents = 400;
-  const discountCents = promoCode?.toUpperCase() === "WELCOME10" ? Math.round(subtotalCents * 0.1) : 0;
-  const totalCents = subtotalCents + deliveryFeeCents + serviceFeeCents - discountCents;
+  const discountCents =
+    promoCode?.toUpperCase() === "WELCOME10"
+      ? Math.round(subtotalCents * 0.1)
+      : 0;
+  const totalCents =
+    subtotalCents + deliveryFeeCents + serviceFeeCents - discountCents;
 
   return { deliveryFeeCents, serviceFeeCents, discountCents, totalCents };
 }
@@ -100,6 +107,7 @@ type DbOrderRow = {
   discount_cents: number;
   total_cents: number;
   promo_code: string | null;
+  payment_method: PaymentMethod;
   address: string;
   delivery_window: string;
   created_at: string;
@@ -118,6 +126,7 @@ function toOrderRecord(row: DbOrderRow): OrderRecord {
     discountCents: row.discount_cents,
     totalCents: row.total_cents,
     promoCode: row.promo_code,
+    paymentMethod: row.payment_method,
     address: row.address,
     deliveryWindow: row.delivery_window,
     createdAt: row.created_at,
@@ -132,7 +141,11 @@ function toOrderRecord(row: DbOrderRow): OrderRecord {
 
 async function getPlanById(planId: PlanId) {
   const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase.from("plans").select("id,name,price_cents").eq("id", planId).maybeSingle();
+  const { data, error } = await supabase
+    .from("plans")
+    .select("id,name,price_cents")
+    .eq("id", planId)
+    .maybeSingle();
   if (error || !data) return null;
   return data;
 }
@@ -142,11 +155,14 @@ export async function listOrders(userId: string) {
   const { data, error } = await supabase
     .from("orders")
     .select(
-      "id,plan_id,plan_name,status,subtotal_cents,delivery_fee_cents,service_fee_cents,discount_cents,total_cents,promo_code,address,delivery_window,created_at,order_timeline_events(status,label,note,event_at)",
+      "id,plan_id,plan_name,status,subtotal_cents,delivery_fee_cents,service_fee_cents,discount_cents,total_cents,promo_code,payment_method,address,delivery_window,created_at,order_timeline_events(status,label,note,event_at)",
     )
     .eq("user_id", userId)
     .order("created_at", { ascending: false })
-    .order("event_at", { foreignTable: "order_timeline_events", ascending: true });
+    .order("event_at", {
+      foreignTable: "order_timeline_events",
+      ascending: true,
+    });
 
   if (error || !data) return [];
   return (data as DbOrderRow[]).map(toOrderRecord);
@@ -157,23 +173,30 @@ export async function getOrder(id: string, userId: string) {
   const { data, error } = await supabase
     .from("orders")
     .select(
-      "id,plan_id,plan_name,status,subtotal_cents,delivery_fee_cents,service_fee_cents,discount_cents,total_cents,promo_code,address,delivery_window,created_at,order_timeline_events(status,label,note,event_at)",
+      "id,plan_id,plan_name,status,subtotal_cents,delivery_fee_cents,service_fee_cents,discount_cents,total_cents,promo_code,payment_method,address,delivery_window,created_at,order_timeline_events(status,label,note,event_at)",
     )
     .eq("id", id)
     .eq("user_id", userId)
-    .order("event_at", { foreignTable: "order_timeline_events", ascending: true })
+    .order("event_at", {
+      foreignTable: "order_timeline_events",
+      ascending: true,
+    })
     .maybeSingle();
 
   if (error || !data) return null;
   return toOrderRecord(data as DbOrderRow);
 }
 
-export async function createOrder(userId: string, input: {
-  planId: PlanId;
-  promoCode?: string;
-  address: string;
-  deliveryWindow: string;
-}) {
+export async function createOrder(
+  userId: string,
+  input: {
+    planId: PlanId;
+    promoCode?: string;
+    address: string;
+    deliveryWindow: string;
+    paymentMethod: PaymentMethod;
+  },
+) {
   const plan = await getPlanById(input.planId);
   if (!plan) {
     throw new Error("Unknown plan");
@@ -198,6 +221,7 @@ export async function createOrder(userId: string, input: {
     discount_cents: totals.discountCents,
     total_cents: totals.totalCents,
     promo_code: promoCode,
+    payment_method: input.paymentMethod,
     address: input.address,
     delivery_window: input.deliveryWindow,
     created_at: createdAt,
@@ -207,13 +231,15 @@ export async function createOrder(userId: string, input: {
     throw insertOrderError;
   }
 
-  const { error: timelineError } = await supabase.from("order_timeline_events").insert({
-    order_id: id,
-    status: timeline.status,
-    label: timeline.label,
-    note: timeline.note,
-    event_at: timeline.timestamp,
-  });
+  const { error: timelineError } = await supabase
+    .from("order_timeline_events")
+    .insert({
+      order_id: id,
+      status: timeline.status,
+      label: timeline.label,
+      note: timeline.note,
+      event_at: timeline.timestamp,
+    });
 
   if (timelineError) {
     throw timelineError;
@@ -253,13 +279,15 @@ export async function advanceOrderStatus(id: string, userId: string) {
     throw updateError;
   }
 
-  const { error: timelineError } = await supabase.from("order_timeline_events").insert({
-    order_id: id,
-    status: nextTimeline.status,
-    label: nextTimeline.label,
-    note: nextTimeline.note,
-    event_at: nextTimeline.timestamp,
-  });
+  const { error: timelineError } = await supabase
+    .from("order_timeline_events")
+    .insert({
+      order_id: id,
+      status: nextTimeline.status,
+      label: nextTimeline.label,
+      note: nextTimeline.note,
+      event_at: nextTimeline.timestamp,
+    });
 
   if (timelineError) {
     throw timelineError;
