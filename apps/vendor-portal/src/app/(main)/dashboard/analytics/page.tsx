@@ -7,6 +7,12 @@ import { AnalyticsOverview } from "./_components/analytics-overview";
 export default function Page() {
   return (
     <div className="flex flex-col gap-4 md:gap-6">
+      <section className="space-y-1">
+        <h1 className="font-semibold text-2xl tracking-tight">Analytics</h1>
+        <p className="text-muted-foreground text-sm">
+          Review performance trends, monitor risk, and spot revenue opportunities.
+        </p>
+      </section>
       <AnalyticsOverview />
 
       <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-3">

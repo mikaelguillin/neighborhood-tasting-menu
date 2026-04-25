@@ -1,7 +1,9 @@
 "use client";
 import * as React from "react";
+import { useRouter } from "next/navigation";
 
-import { ChartBar, Forklift, Gauge, GraduationCap, LayoutDashboard, Search, ShoppingBag } from "lucide-react";
+import { CalendarClock, Fingerprint, Gauge, ListOrdered, Menu, Search, Store } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -15,20 +17,26 @@ import {
   CommandSeparator,
 } from "@/components/ui/command";
 
-const searchItems = [
-  { group: "Dashboards", icon: LayoutDashboard, label: "Default" },
-  { group: "Dashboards", icon: ChartBar, label: "CRM" },
-  { group: "Dashboards", icon: Gauge, label: "Analytics" },
-  { group: "Dashboards", icon: ShoppingBag, label: "E-Commerce", disabled: true },
-  { group: "Dashboards", icon: GraduationCap, label: "Academy", disabled: true },
-  { group: "Dashboards", icon: Forklift, label: "Logistics", disabled: true },
-  { group: "Authentication", label: "Login v1" },
-  { group: "Authentication", label: "Login v2" },
-  { group: "Authentication", label: "Register v1" },
-  { group: "Authentication", label: "Register v2" },
+interface SearchItem {
+  group: string;
+  label: string;
+  url: string;
+  icon?: LucideIcon;
+  disabled?: boolean;
+}
+
+const searchItems: SearchItem[] = [
+  { group: "Vendor Workspace", icon: ListOrdered, label: "Orders", url: "/dashboard/default" },
+  { group: "Vendor Workspace", icon: Store, label: "Profile", url: "/dashboard/crm" },
+  { group: "Vendor Workspace", icon: CalendarClock, label: "Availability", url: "/dashboard/finance" },
+  { group: "Vendor Workspace", icon: Gauge, label: "Analytics", url: "/dashboard/analytics" },
+  { group: "Vendor Workspace", icon: Menu, label: "Menu Management", url: "/dashboard/productivity" },
+  { group: "Authentication", icon: Fingerprint, label: "Login v1", url: "/auth/v1/login" },
+  { group: "Authentication", icon: Fingerprint, label: "Register v1", url: "/auth/v1/register" },
 ];
 
 export function SearchDialog() {
+  const router = useRouter();
   const [open, setOpen] = React.useState(false);
   const groups = [...new Set(searchItems.map((item) => item.group))];
 
@@ -58,7 +66,7 @@ export function SearchDialog() {
       </Button>
       <CommandDialog open={open} onOpenChange={setOpen}>
         <Command>
-          <CommandInput placeholder="Search dashboards, users, and more…" />
+          <CommandInput placeholder="Search orders, menu, profile, and more..." />
           <CommandList>
             <CommandEmpty>No results found.</CommandEmpty>
             {groups.map((group, index) => (
@@ -73,6 +81,7 @@ export function SearchDialog() {
                         key={item.label}
                         onSelect={() => {
                           if (!item.disabled) {
+                            router.push(item.url);
                             setOpen(false);
                           }
                         }}

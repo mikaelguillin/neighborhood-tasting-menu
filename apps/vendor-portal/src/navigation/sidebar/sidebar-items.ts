@@ -1,21 +1,11 @@
 import {
-  Banknote,
-  Calendar,
-  ChartBar,
+  CalendarClock,
   Fingerprint,
-  Forklift,
   Gauge,
-  GraduationCap,
-  Kanban,
-  LayoutDashboard,
-  ListTodo,
-  Lock,
+  ListOrdered,
+  Menu,
+  Store,
   type LucideIcon,
-  Mail,
-  MessageSquare,
-  ReceiptText,
-  ShoppingBag,
-  SquareArrowUpRight,
   Users,
 } from "lucide-react";
 
@@ -47,22 +37,22 @@ export interface NavGroup {
 export const sidebarItems: NavGroup[] = [
   {
     id: 1,
-    label: "Dashboards",
+    label: "Vendor Workspace",
     items: [
       {
-        title: "Default",
+        title: "Orders",
         url: "/dashboard/default",
-        icon: LayoutDashboard,
+        icon: ListOrdered,
       },
       {
-        title: "CRM",
+        title: "Profile",
         url: "/dashboard/crm",
-        icon: ChartBar,
+        icon: Store,
       },
       {
-        title: "Finance",
+        title: "Availability",
         url: "/dashboard/finance",
-        icon: Banknote,
+        icon: CalendarClock,
       },
       {
         title: "Analytics",
@@ -70,74 +60,20 @@ export const sidebarItems: NavGroup[] = [
         icon: Gauge,
       },
       {
-        title: "Productivity",
+        title: "Menu Management",
         url: "/dashboard/productivity",
-        icon: ListTodo,
-      },
-      {
-        title: "E-commerce",
-        url: "/dashboard/coming-soon",
-        icon: ShoppingBag,
-        comingSoon: true,
-      },
-      {
-        title: "Academy",
-        url: "/dashboard/coming-soon",
-        icon: GraduationCap,
-        comingSoon: true,
-      },
-      {
-        title: "Logistics",
-        url: "/dashboard/coming-soon",
-        icon: Forklift,
-        comingSoon: true,
+        icon: Menu,
       },
     ],
   },
   {
     id: 2,
-    label: "Pages",
+    label: "Team Access",
     items: [
       {
-        title: "Email",
-        url: "/dashboard/coming-soon",
-        icon: Mail,
-        comingSoon: true,
-      },
-      {
-        title: "Chat",
-        url: "/dashboard/coming-soon",
-        icon: MessageSquare,
-        comingSoon: true,
-      },
-      {
-        title: "Calendar",
-        url: "/dashboard/coming-soon",
-        icon: Calendar,
-        comingSoon: true,
-      },
-      {
-        title: "Kanban",
-        url: "/dashboard/coming-soon",
-        icon: Kanban,
-        comingSoon: true,
-      },
-      {
-        title: "Invoice",
-        url: "/dashboard/coming-soon",
-        icon: ReceiptText,
-        comingSoon: true,
-      },
-      {
-        title: "Users",
+        title: "Team Members",
         url: "/dashboard/coming-soon",
         icon: Users,
-        comingSoon: true,
-      },
-      {
-        title: "Roles",
-        url: "/dashboard/coming-soon",
-        icon: Lock,
         comingSoon: true,
       },
       {
@@ -146,36 +82,8 @@ export const sidebarItems: NavGroup[] = [
         icon: Fingerprint,
         subItems: [
           { title: "Login v1", url: "/auth/v1/login", newTab: true },
-          { title: "Login v2", url: "/auth/v2/login", newTab: true },
           { title: "Register v1", url: "/auth/v1/register", newTab: true },
-          { title: "Register v2", url: "/auth/v2/register", newTab: true },
         ],
-      },
-    ],
-  },
-  {
-    id: 3,
-    label: "Legacy",
-    items: [
-      {
-        title: "Dashboards",
-        url: "/dashboard/default-v1",
-        subItems: [
-          { title: "Default V1", url: "/dashboard/default-v1" },
-          { title: "CRM V1", url: "/dashboard/crm-v1" },
-        ],
-      },
-    ],
-  },
-  {
-    id: 4,
-    label: "Misc",
-    items: [
-      {
-        title: "Others",
-        url: "/dashboard/coming-soon",
-        icon: SquareArrowUpRight,
-        comingSoon: true,
       },
     ],
   },

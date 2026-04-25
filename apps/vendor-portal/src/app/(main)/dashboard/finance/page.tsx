@@ -12,6 +12,12 @@ import { SpendingBreakdown } from "./_components/spending-breakdown";
 export default function Page() {
   return (
     <div>
+      <section className="mb-4 space-y-1">
+        <h1 className="font-semibold text-2xl tracking-tight">Availability</h1>
+        <p className="text-muted-foreground text-sm">
+          Manage operating windows and service capacity across your weekly schedule.
+        </p>
+      </section>
       <Tabs className="gap-4" defaultValue="overview">
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
