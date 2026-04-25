@@ -33,6 +33,10 @@ export function OrdersList() {
         if (!response.ok) return;
         const payload = (await response.json()) as { items: OrderItem[] };
         setItems(payload.items);
+      } catch (error) {
+        if (!(error instanceof DOMException && error.name === "AbortError")) {
+          console.error("Failed to load orders", error);
+        }
       } finally {
         if (!controller.signal.aborted) {
           setLoading(false);
