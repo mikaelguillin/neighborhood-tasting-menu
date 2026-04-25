@@ -1,23 +1,78 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useState } from "react";
-import { Menu, X } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
+import type { User } from "@supabase/supabase-js";
+import { ChevronDown, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 import { cn } from "@/lib/utils";
 
 const NAV_LINKS = [
   { href: "/", label: "Home" },
   { href: "/neighborhoods", label: "Neighborhoods" },
-  { href: "/orders", label: "Orders" },
   { href: "/how-it-works", label: "How it works" },
   { href: "/plans", label: "Plans" },
 ] as const;
 
 export function SiteHeader() {
   const [open, setOpen] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [authReady, setAuthReady] = useState(false);
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
+
+  useEffect(() => {
+    const supabase = createSupabaseBrowserClient();
+
+    let mounted = true;
+
+    const loadUser = async () => {
+      const { data } = await supabase.auth.getUser();
+      if (!mounted) return;
+      setUser(data.user ?? null);
+      setAuthReady(true);
+    };
+
+    void loadUser();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+      setAuthReady(true);
+    });
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  const displayName = useMemo(() => {
+    const fullName =
+      typeof user?.user_metadata?.full_name === "string" ? user.user_metadata.full_name : null;
+    return fullName?.trim() || user?.email || "Account";
+  }, [user]);
+
+  const handleLogout = async () => {
+    const supabase = createSupabaseBrowserClient();
+    await supabase.auth.signOut();
+    setAccountMenuOpen(false);
+    setOpen(false);
+    router.push("/");
+    router.refresh();
+  };
 
   return (
     <header className="sticky top-0 z-40 bg-canvas/85 backdrop-blur-md shadow-[var(--shadow-nav)]">
@@ -68,9 +123,34 @@ export function SiteHeader() {
         </nav>
 
         <div className="hidden items-center gap-3 lg:flex">
-          <Button variant="dark" size="sm" asChild>
-            <Link href="/sign-in">Sign in</Link>
-          </Button>
+          {!authReady ? (
+            <Button variant="dark" size="sm" disabled>
+              Account
+            </Button>
+          ) : user ? (
+            <DropdownMenu open={accountMenuOpen} onOpenChange={setAccountMenuOpen}>
+              <DropdownMenuTrigger asChild>
+                <Button variant="dark" size="sm" className="max-w-[220px] gap-1">
+                  <span className="truncate">{displayName}</span>
+                  <ChevronDown className="h-4 w-4 opacity-70" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-52">
+                <DropdownMenuLabel className="truncate">{displayName}</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link href="/orders" onClick={() => setAccountMenuOpen(false)}>
+                    Orders
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => void handleLogout()}>Logout</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Button variant="dark" size="sm" asChild>
+              <Link href="/sign-in">Sign in</Link>
+            </Button>
+          )}
           <Button variant="black" size="sm" asChild>
             <Link href="/checkout">Checkout</Link>
           </Button>
@@ -100,11 +180,33 @@ export function SiteHeader() {
               </Link>
             ))}
             <div className="mt-2 flex items-center gap-3 px-1">
-              <Button variant="dark" size="sm" className="flex-1" asChild>
-                <Link href="/sign-in" onClick={() => setOpen(false)}>
-                  Sign in
-                </Link>
-              </Button>
+              {!authReady ? (
+                <Button variant="dark" size="sm" className="flex-1" disabled>
+                  Account
+                </Button>
+              ) : user ? (
+                <>
+                  <Button variant="dark" size="sm" className="flex-1" asChild>
+                    <Link href="/orders" onClick={() => setOpen(false)}>
+                      Orders
+                    </Link>
+                  </Button>
+                  <Button
+                    variant="dark"
+                    size="sm"
+                    className="flex-1"
+                    onClick={() => void handleLogout()}
+                  >
+                    Logout
+                  </Button>
+                </>
+              ) : (
+                <Button variant="dark" size="sm" className="flex-1" asChild>
+                  <Link href="/sign-in" onClick={() => setOpen(false)}>
+                    Sign in
+                  </Link>
+                </Button>
+              )}
               <Button variant="black" size="sm" className="flex-1" asChild>
                 <Link href="/checkout" onClick={() => setOpen(false)}>
                   Checkout
