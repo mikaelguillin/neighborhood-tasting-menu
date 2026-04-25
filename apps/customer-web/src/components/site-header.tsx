@@ -139,6 +139,11 @@ export function SiteHeader() {
                 <DropdownMenuLabel className="truncate">{displayName}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
+                  <Link href="/profile" onClick={() => setAccountMenuOpen(false)}>
+                    Profile
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
                   <Link href="/orders" onClick={() => setAccountMenuOpen(false)}>
                     Orders
                   </Link>
@@ -186,6 +191,11 @@ export function SiteHeader() {
                 </Button>
               ) : user ? (
                 <>
+                  <Button variant="dark" size="sm" className="flex-1" asChild>
+                    <Link href="/profile" onClick={() => setOpen(false)}>
+                      Profile
+                    </Link>
+                  </Button>
                   <Button variant="dark" size="sm" className="flex-1" asChild>
                     <Link href="/orders" onClick={() => setOpen(false)}>
                       Orders
