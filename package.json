@@ -1,0 +1,18 @@
+{
+  "name": "neighborhood-tasting-menu",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@10.18.0",
+  "scripts": {
+    "dev:customer": "pnpm --filter customer-web dev",
+    "dev:vendor": "pnpm --filter vendor-portal dev",
+    "dev:api": "pnpm --filter @ntm/api dev",
+    "build": "pnpm -r --if-present build",
+    "lint": "pnpm -r --if-present lint",
+    "typecheck": "pnpm -r --if-present typecheck",
+    "test": "pnpm -r --if-present test",
+    "check": "pnpm lint && pnpm typecheck && pnpm test",
+    "supabase:reset": "supabase db reset",
+    "supabase:push": "supabase db push"
+  }
+}

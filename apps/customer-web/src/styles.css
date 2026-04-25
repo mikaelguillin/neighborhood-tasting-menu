@@ -1,0 +1,174 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Neighborhood Tasting Menu — Design System
+ * Inspired by Starbucks: warm-cream canvas, four-tier green system,
+ * full-pill buttons, whisper-soft layered shadows. Uses Inter as a
+ * SoDoSans substitute and Lora as the editorial serif accent.
+ */
+
+@theme inline {
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-pill: 50px;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-canvas: var(--canvas);
+  --color-canvas-soft: var(--canvas-soft);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-brand: var(--brand);
+  --color-brand-foreground: var(--brand-foreground);
+  --color-house: var(--house);
+  --color-house-foreground: var(--house-foreground);
+  --color-uplift: var(--uplift);
+  --color-mint: var(--mint);
+  --color-gold: var(--gold);
+  --color-gold-soft: var(--gold-soft);
+
+  --font-sans: "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-serif: "Lora", "Iowan Old Style", Georgia, serif;
+
+  --shadow-card: 0 0 0.5px 0 rgb(0 0 0 / 0.14), 0 1px 1px 0 rgb(0 0 0 / 0.24);
+  --shadow-nav: 0 1px 3px rgb(0 0 0 / 0.1), 0 2px 2px rgb(0 0 0 / 0.06), 0 0 2px rgb(0 0 0 / 0.07);
+  --shadow-frap: 0 0 6px rgb(0 0 0 / 0.24), 0 8px 12px rgb(0 0 0 / 0.14);
+  --shadow-frap-active: 0 0 6px rgb(0 0 0 / 0.24), 0 8px 12px rgb(0 0 0 / 0);
+}
+
+:root {
+  --radius: 12px;
+
+  /* Surfaces */
+  --canvas: oklch(0.962 0.008 84); /* #f2f0eb Neutral Warm */
+  --canvas-soft: oklch(0.946 0.006 80); /* #edebe9 Ceramic */
+  --background: oklch(0.962 0.008 84);
+  --foreground: oklch(0.22 0 0); /* rgba(0,0,0,0.87) */
+  --card: oklch(1 0 0); /* #ffffff */
+  --card-foreground: oklch(0.22 0 0);
+  --popover: oklch(0.985 0 0); /* #f9f9f9 cool */
+  --popover-foreground: oklch(0.22 0 0);
+
+  /* Brand greens */
+  --brand: oklch(0.41 0.09 162); /* #006241 Starbucks Green */
+  --brand-foreground: oklch(1 0 0);
+  --primary: oklch(0.45 0.1 162); /* #00754A Green Accent — CTAs */
+  --primary-foreground: oklch(1 0 0);
+  --house: oklch(0.3 0.04 168); /* #1E3932 House Green */
+  --house-foreground: oklch(1 0 0);
+  --uplift: oklch(0.4 0.05 168); /* #2b5148 */
+  --mint: oklch(0.92 0.04 162); /* #d4e9e2 */
+
+  /* Gold (premium / "Local Hero" tier) */
+  --gold: oklch(0.74 0.1 80); /* #cba258 */
+  --gold-soft: oklch(0.97 0.03 85); /* #faf6ee */
+
+  --secondary: oklch(0.946 0.006 80);
+  --secondary-foreground: oklch(0.22 0 0);
+  --muted: oklch(0.946 0.006 80);
+  --muted-foreground: oklch(0.45 0.01 80); /* rgba(0,0,0,0.58) ish */
+  --accent: oklch(0.92 0.04 162);
+  --accent-foreground: oklch(0.3 0.04 168);
+  --destructive: oklch(0.55 0.21 27); /* #c82014 */
+  --destructive-foreground: oklch(1 0 0);
+
+  --border: oklch(0.88 0.005 80); /* warm hairline */
+  --input: oklch(0.88 0.005 80);
+  --ring: oklch(0.45 0.1 162);
+}
+
+.dark {
+  /* Dark mode kept available but app ships light by default. */
+  --canvas: oklch(0.18 0.02 168);
+  --canvas-soft: oklch(0.22 0.02 168);
+  --background: oklch(0.18 0.02 168);
+  --foreground: oklch(0.97 0 0);
+  --card: oklch(0.3 0.04 168);
+  --card-foreground: oklch(0.97 0 0);
+  --popover: oklch(0.22 0.02 168);
+  --popover-foreground: oklch(0.97 0 0);
+  --primary: oklch(0.55 0.12 162);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.3 0.04 168);
+  --secondary-foreground: oklch(0.97 0 0);
+  --muted: oklch(0.3 0.04 168);
+  --muted-foreground: oklch(0.74 0.02 80);
+  --accent: oklch(0.4 0.05 168);
+  --accent-foreground: oklch(0.97 0 0);
+  --border: oklch(1 0 0 / 12%);
+  --input: oklch(1 0 0 / 15%);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  html {
+    background-color: var(--color-canvas);
+  }
+
+  body {
+    background-color: var(--color-canvas);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    letter-spacing: -0.01em;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    letter-spacing: -0.02em;
+  }
+
+  ::selection {
+    background-color: color-mix(in oklab, var(--color-primary) 20%, transparent);
+    color: var(--color-house);
+  }
+}
+
+@utility font-editorial {
+  font-family: var(--font-serif);
+  letter-spacing: -0.01em;
+}
+
+/* Pill button active feedback used by the bespoke .pill-btn class */
+@utility pill-press {
+  transition:
+    transform 0.2s ease,
+    background-color 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+@utility pill-press-active {
+  transform: scale(0.95);
+}
