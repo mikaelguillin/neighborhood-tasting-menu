@@ -17,7 +17,7 @@ Status: Updated to reflect current planning artifacts.
 
 - [~] Sprint 1: Customer discovery and item experience. (in progress)
 - [~] Sprint 2: Cart, checkout, and order lifecycle transparency. (in progress)
-- [ ] Sprint 3: Vendor daily operations and queue management.
+- [~] Sprint 3: Vendor daily operations and queue management. (in progress)
 - [ ] Sprint 4: Merchant growth tools and customer trust features.
 - [ ] Sprint 5: Notifications, retention, and personalization.
 - [ ] Sprint 6: Hardening, accessibility, and launch readiness.
@@ -49,6 +49,24 @@ Status: Updated to reflect current planning artifacts.
 - Updated navigation and plan conversion paths:
   - `apps/customer-web/src/components/site-header.tsx` now includes `Orders` and routes CTA to `Checkout`
   - `apps/customer-web/src/app/plans/page.tsx` plan CTAs now deep-link into checkout with plan preselection
+
+### 2026-04-25 Sprint 3 Start
+
+- Replaced generic vendor `Orders` dashboard composition with a true operations dashboard:
+  - `apps/vendor-portal/src/app/(main)/dashboard/default/page.tsx`
+  - `apps/vendor-portal/src/app/(main)/dashboard/default/_components/ops-dashboard.tsx`
+- Added queue operations module with status transitions and SLA/priority context:
+  - `apps/vendor-portal/src/app/(main)/dashboard/default/_components/queue-priorities.tsx`
+  - `apps/vendor-portal/src/app/api/vendor/ops/queue/route.ts`
+  - `apps/vendor-portal/src/app/api/vendor/ops/queue/[id]/status/route.ts`
+- Added inventory controls with low-stock signals and bulk availability actions:
+  - `apps/vendor-portal/src/app/(main)/dashboard/default/_components/inventory-controls.tsx`
+  - `apps/vendor-portal/src/app/api/vendor/ops/inventory/route.ts`
+  - `apps/vendor-portal/src/app/api/vendor/ops/inventory/[id]/route.ts`
+  - `apps/vendor-portal/src/app/api/vendor/ops/inventory/bulk/route.ts`
+- Added operations KPI cards for queue load, urgent SLA count, low stock, and unavailable items:
+  - `apps/vendor-portal/src/app/(main)/dashboard/default/_components/ops-metric-cards.tsx`
+- Added `apps/vendor-portal/src/lib/vendor-ops-store.ts` in-memory operational data model to support daily queue/inventory workflows and deterministic transitions.
 
 ### Notes
 

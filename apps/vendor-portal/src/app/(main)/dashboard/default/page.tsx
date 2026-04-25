@@ -1,6 +1,4 @@
-import { MetricCards } from "./_components/metric-cards";
-import { PerformanceOverview } from "./_components/performance-overview";
-import { SubscriberOverview } from "./_components/subscriber-overview";
+import { OpsDashboard } from "./_components/ops-dashboard";
 
 export default function Page() {
   return (
@@ -8,12 +6,10 @@ export default function Page() {
       <section className="space-y-1">
         <h1 className="font-semibold text-2xl tracking-tight">Orders</h1>
         <p className="text-muted-foreground text-sm">
-          Track incoming orders, monitor fulfillment health, and keep service moving.
+          Run daily operations with queue priorities, SLA visibility, and inventory controls.
         </p>
       </section>
-      <MetricCards />
-      <PerformanceOverview />
-      <SubscriberOverview />
+      <OpsDashboard />
     </div>
   );
 }
