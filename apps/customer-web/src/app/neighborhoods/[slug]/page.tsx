@@ -3,15 +3,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { getNeighborhoodBySlug, listNeighborhoodSlugs, listNeighborhoods } from "@/lib/catalog-store";
+import { getNeighborhoodBySlug, listNeighborhoods } from "@/lib/catalog-store";
 import { imageSrc } from "@/lib/image-src";
 
 type Props = { params: Promise<{ slug: string }> };
-
-export async function generateStaticParams() {
-  const slugs = await listNeighborhoodSlugs();
-  return slugs.map((slug) => ({ slug }));
-}
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
