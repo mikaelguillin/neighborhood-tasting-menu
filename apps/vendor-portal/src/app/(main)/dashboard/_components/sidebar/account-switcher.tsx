@@ -1,6 +1,6 @@
 "use client";
 
-import { BadgeCheck, Bell, CreditCard, LogOut } from "lucide-react";
+import { BadgeCheck, Bell, LogOut } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -62,10 +62,6 @@ export function AccountSwitcher({ user }: { readonly user: VendorPortalUser }) {
           <DropdownMenuItem>
             <BadgeCheck />
             Account
-          </DropdownMenuItem>
-          <DropdownMenuItem>
-            <CreditCard />
-            Billing
           </DropdownMenuItem>
           <DropdownMenuItem>
             <Bell />

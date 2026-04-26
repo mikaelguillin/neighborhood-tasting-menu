@@ -1,6 +1,5 @@
 import {
   CalendarClock,
-  Fingerprint,
   Gauge,
   ListOrdered,
   Menu,
@@ -75,16 +74,7 @@ export const sidebarItems: NavGroup[] = [
         url: "/dashboard/coming-soon",
         icon: Users,
         comingSoon: true,
-      },
-      {
-        title: "Authentication",
-        url: "/auth",
-        icon: Fingerprint,
-        subItems: [
-          { title: "Login v1", url: "/auth/v1/login", newTab: true },
-          { title: "Register v1", url: "/auth/v1/register", newTab: true },
-        ],
-      },
+      }
     ],
   },
 ];
