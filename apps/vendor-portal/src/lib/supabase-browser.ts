@@ -14,5 +14,11 @@ export function createSupabaseBrowserClient() {
   return createBrowserClient(
     supabaseUrl,
     supabaseAnonKey,
+    {
+      cookieOptions: {
+        // Keep browser/session cookie namespace separate per app.
+        name: "vendor-portal-auth",
+      },
+    },
   );
 }

@@ -11,5 +11,11 @@ export function createSupabaseBrowserClient() {
   return createBrowserClient(
     requireEnv("NEXT_PUBLIC_SUPABASE_URL", process.env.NEXT_PUBLIC_SUPABASE_URL),
     requireEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY", process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY),
+    {
+      cookieOptions: {
+        // Keep browser/session cookie namespace separate per app.
+        name: "customer-web-auth",
+      },
+    },
   );
 }

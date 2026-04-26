@@ -15,6 +15,10 @@ export async function createSupabaseServerClient() {
   const key = requireEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY");
 
   return createServerClient(url, key, {
+    cookieOptions: {
+      // Isolate auth from customer-web on shared localhost/domain.
+      name: "vendor-portal-auth",
+    },
     cookies: {
       get(name) {
         return cookieStore.get(name)?.value;
