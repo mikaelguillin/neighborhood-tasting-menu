@@ -39,7 +39,6 @@ function centsToMoney(value: number) {
 export function OrderTimeline({ orderId }: { orderId: string }) {
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [loading, setLoading] = useState(true);
-  const [advancing, setAdvancing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -63,13 +62,6 @@ export function OrderTimeline({ orderId }: { orderId: string }) {
     load();
   }, [load]);
 
-  async function advanceStatus() {
-    setAdvancing(true);
-    await fetch(`/api/orders/${orderId}/advance`, { method: "POST" });
-    await load();
-    setAdvancing(false);
-  }
-
   if (loading) {
     return (
       <div className="flex items-center gap-2 text-sm text-foreground/70">
@@ -91,8 +83,6 @@ export function OrderTimeline({ orderId }: { orderId: string }) {
     );
   }
 
-  const isComplete = order.status === "delivered";
-
   return (
     <div className="space-y-6">
       <div className="rounded-[12px] bg-card p-6 shadow-[var(--shadow-card)]">
@@ -106,18 +96,6 @@ export function OrderTimeline({ orderId }: { orderId: string }) {
         </p>
         <p className="mt-3 text-base font-semibold">{centsToMoney(order.totalCents)}</p>
         <div className="mt-5 flex flex-wrap items-center gap-3">
-          <Button onClick={advanceStatus} disabled={isComplete || advancing}>
-            {advancing ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Updating...
-              </>
-            ) : isComplete ? (
-              "Delivered"
-            ) : (
-              "Advance status"
-            )}
-          </Button>
           <Button variant="outline" asChild>
             <Link href="/orders">All orders</Link>
           </Button>
