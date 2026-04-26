@@ -66,8 +66,8 @@ export function SignInForm() {
         </Button>
         <p className="text-center text-sm text-foreground/70">
           New here?{" "}
-          <Link href="/plans" className="font-semibold text-primary hover:underline">
-            Start a subscription
+          <Link href="#" className="font-semibold text-primary hover:underline">
+            Create a new account
           </Link>
         </p>
       </div>
