@@ -41,6 +41,11 @@ export type VendorPortalUser = {
   role: string;
 };
 
+export type VendorContext = {
+  vendorId: string;
+  vendorName: string;
+};
+
 function normalizeVendorPortalUser(authUser: {
   id: string;
   email?: string | null;
@@ -109,4 +114,29 @@ export async function requireVendorMembership() {
   }
 
   return { supabase, userId: authData.user.id, vendorId: membership.vendor_id };
+}
+
+export async function getCurrentVendorContext(): Promise<VendorContext | null> {
+  const membershipResult = await requireVendorMembership();
+  if ("error" in membershipResult) {
+    return null;
+  }
+
+  const { supabase, vendorId } = membershipResult;
+  const { data: vendor, error } = await supabase
+    .from("vendors")
+    .select("name")
+    .eq("id", vendorId)
+    .maybeSingle();
+
+  if (error) {
+    return null;
+  }
+
+  const vendorName = typeof vendor?.name === "string" ? vendor.name.trim() : "";
+  if (!vendorName) {
+    return null;
+  }
+
+  return { vendorId, vendorName };
 }

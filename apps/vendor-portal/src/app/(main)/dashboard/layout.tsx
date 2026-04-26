@@ -7,7 +7,7 @@ import { AppSidebar } from "@/app/(main)/dashboard/_components/sidebar/app-sideb
 import { Separator } from "@/components/ui/separator";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { SIDEBAR_COLLAPSIBLE_VALUES, SIDEBAR_VARIANT_VALUES } from "@/lib/preferences/layout";
-import { getVendorPortalUser } from "@/lib/supabase-server";
+import { getCurrentVendorContext, getVendorPortalUser } from "@/lib/supabase-server";
 import { cn } from "@/lib/utils";
 import { getPreference } from "@/server/server-actions";
 
@@ -21,6 +21,7 @@ export default async function Layout({ children }: Readonly<{ children: ReactNod
   if (!user) {
     redirect("/auth/v1/login");
   }
+  const vendorContext = await getCurrentVendorContext();
 
   const cookieStore = await cookies();
   const defaultOpen = cookieStore.get("sidebar_state")?.value !== "false";
@@ -38,7 +39,12 @@ export default async function Layout({ children }: Readonly<{ children: ReactNod
         } as React.CSSProperties
       }
     >
-      <AppSidebar variant={variant} collapsible={collapsible} user={user} />
+      <AppSidebar
+        variant={variant}
+        collapsible={collapsible}
+        user={user}
+        vendorName={vendorContext?.vendorName}
+      />
       <SidebarInset
         className={cn(
           "[html[data-content-layout=centered]_&>*]:mx-auto",

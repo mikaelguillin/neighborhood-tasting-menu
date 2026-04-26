@@ -24,9 +24,10 @@ import { NavUser } from "./nav-user";
 
 type AppSidebarProps = React.ComponentProps<typeof Sidebar> & {
   readonly user: VendorPortalUser;
+  readonly vendorName?: string;
 };
 
-export function AppSidebar({ user, ...props }: AppSidebarProps) {
+export function AppSidebar({ user, vendorName, ...props }: AppSidebarProps) {
   const { sidebarVariant, sidebarCollapsible, isSynced } = usePreferencesStore(
     useShallow((s) => ({
       sidebarVariant: s.sidebarVariant,
@@ -46,7 +47,14 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
             <SidebarMenuButton asChild>
               <Link prefetch={false} href="/dashboard/default">
                 <Command />
-                <span className="font-semibold text-base">{APP_CONFIG.name}</span>
+                <div className="grid min-w-0 gap-0.5">
+                  <span className="font-semibold text-base leading-none">{APP_CONFIG.name}</span>
+                  {vendorName ? (
+                    <span className="max-w-[180px] truncate text-muted-foreground text-xs leading-none">
+                      {vendorName}
+                    </span>
+                  ) : null}
+                </div>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
