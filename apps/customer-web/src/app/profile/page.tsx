@@ -50,8 +50,8 @@ export default async function ProfilePage() {
         <ProfileForm
           initialEmail={profile?.email ?? user.email ?? ""}
           initialFullName={profile?.full_name ?? fallbackFullName}
-          initialPhone={profile?.phone}
-          initialDefaultAddress={profile?.default_address}
+          initialPhone={profile?.phone || ""}
+          initialDefaultAddress={profile?.default_address || ""}
         />
       </div>
     </section>
