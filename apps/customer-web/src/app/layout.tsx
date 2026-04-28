@@ -5,7 +5,7 @@ import { FloatingOrderButton } from "@/components/floating-order-button";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"),
   title: "Neighborhood Tasting Menu — A weekly box from one NYC neighborhood",
   description:
     "Curated weekly delivery of artisan breads, snacks and pantry goods from one New York micro-neighborhood at a time.",
