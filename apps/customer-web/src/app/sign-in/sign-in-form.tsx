@@ -29,7 +29,7 @@ export function SignInForm() {
       return;
     }
 
-    router.push("/orders");
+    router.push("/");
     router.refresh();
   }
 

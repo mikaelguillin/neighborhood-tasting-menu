@@ -39,7 +39,7 @@ export function SignUpForm() {
     }
 
     if (data.session) {
-      router.push("/orders");
+      router.push("/");
       router.refresh();
       return;
     }
