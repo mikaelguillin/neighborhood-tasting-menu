@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { CheckCircle2, Circle, Loader2 } from "lucide-react";
+import { CancelOrderButton } from "@/components/cancel-order-button";
 import { Button } from "@/components/ui/button";
 
 type TimelineEvent = {
@@ -96,6 +97,7 @@ export function OrderTimeline({ orderId }: { orderId: string }) {
         </p>
         <p className="mt-3 text-base font-semibold">{centsToMoney(order.totalCents)}</p>
         <div className="mt-5 flex flex-wrap items-center gap-3">
+          <CancelOrderButton orderId={order.id} status={order.status} onCancelled={load} />
           <Button variant="outline" asChild>
             <Link href="/orders">All orders</Link>
           </Button>

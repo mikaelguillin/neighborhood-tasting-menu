@@ -1,5 +1,6 @@
 import type { PlanId } from "@/lib/catalog-types";
 import type { CheckoutMetadata } from "@/lib/checkout-types";
+import { orderCanBeCancelled } from "@/lib/order-status";
 import { computeOrderTotals } from "@/lib/order-pricing";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 
@@ -8,7 +9,8 @@ export type OrderStatus =
   | "payment_confirmed"
   | "in_preparation"
   | "out_for_delivery"
-  | "delivered";
+  | "delivered"
+  | "cancelled";
 
 export type PaymentMethod = "card" | "apple_pay" | "cash";
 
@@ -65,6 +67,10 @@ const STATUS_META: Record<OrderStatus, { label: string; note: string }> = {
   delivered: {
     label: "Delivered",
     note: "Your box has been delivered. Enjoy the neighborhood drop.",
+  },
+  cancelled: {
+    label: "Order cancelled",
+    note: "This order was cancelled at your request.",
   },
 };
 
@@ -243,11 +249,63 @@ export async function createOrder(
   return order;
 }
 
+export type CancelOrderResult =
+  | { ok: true; order: OrderRecord }
+  | { ok: false; reason: "not_found" | "not_cancellable" };
+
+export async function cancelOrder(id: string, userId: string): Promise<CancelOrderResult> {
+  const order = await getOrder(id, userId);
+  if (!order) {
+    return { ok: false, reason: "not_found" };
+  }
+  if (!orderCanBeCancelled(order.status)) {
+    return { ok: false, reason: "not_cancellable" };
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const cancelledTimeline = createTimelineEvent("cancelled");
+
+  const { error: updateError } = await supabase
+    .from("orders")
+    .update({
+      status: "cancelled",
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", id)
+    .eq("user_id", userId);
+
+  if (updateError) {
+    throw updateError;
+  }
+
+  const { error: timelineError } = await supabase.from("order_timeline_events").insert({
+    order_id: id,
+    status: cancelledTimeline.status,
+    label: cancelledTimeline.label,
+    note: cancelledTimeline.note,
+    event_at: cancelledTimeline.timestamp,
+  });
+
+  if (timelineError) {
+    throw timelineError;
+  }
+
+  const updated = await getOrder(id, userId);
+  if (!updated) {
+    throw new Error("Failed to load order after cancel");
+  }
+  return { ok: true, order: updated };
+}
+
 export async function advanceOrderStatus(id: string, userId: string) {
   const order = await getOrder(id, userId);
   if (!order) return null;
 
   const currentIndex = STATUS_FLOW.indexOf(order.status);
+  if (currentIndex === -1) {
+    return order;
+  }
+
   const next = STATUS_FLOW[currentIndex + 1];
 
   if (!next) {
