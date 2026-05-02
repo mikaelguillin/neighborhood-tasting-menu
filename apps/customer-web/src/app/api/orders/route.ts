@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import type { PlanId } from "@/lib/catalog-types";
+import { parseCheckoutMetadata } from "@/lib/checkout-types";
 import { listPlans } from "@/lib/catalog-store";
 import { createOrder, listOrders } from "@/lib/order-store";
 import { requireCustomerUserId } from "@/lib/supabase-server";
@@ -24,6 +25,7 @@ export async function POST(request: Request) {
         address?: string;
         deliveryWindow?: string;
         paymentMethod?: string;
+        checkoutMetadata?: unknown;
       }
     | null;
 
@@ -52,6 +54,19 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "A valid payment method is required" }, { status: 400 });
   }
 
+  let checkoutMetadata = null;
+  if (payload?.checkoutMetadata !== undefined) {
+    const raw = JSON.stringify(payload.checkoutMetadata);
+    if (raw.length > 16_000) {
+      return NextResponse.json({ error: "Checkout metadata is too large" }, { status: 400 });
+    }
+    const parsed = parseCheckoutMetadata(payload.checkoutMetadata);
+    if (!parsed) {
+      return NextResponse.json({ error: "Invalid checkout metadata" }, { status: 400 });
+    }
+    checkoutMetadata = parsed;
+  }
+
   try {
     const order = await createOrder(auth.userId, {
       planId,
@@ -59,6 +74,7 @@ export async function POST(request: Request) {
       address,
       deliveryWindow,
       paymentMethod,
+      checkoutMetadata,
     });
     return NextResponse.json(order, { status: 201 });
   } catch {

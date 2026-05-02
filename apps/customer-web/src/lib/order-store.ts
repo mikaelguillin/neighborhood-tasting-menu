@@ -1,4 +1,6 @@
 import type { PlanId } from "@/lib/catalog-types";
+import type { CheckoutMetadata } from "@/lib/checkout-types";
+import { computeOrderTotals } from "@/lib/order-pricing";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 
 export type OrderStatus =
@@ -65,19 +67,6 @@ const STATUS_META: Record<OrderStatus, { label: string; note: string }> = {
     note: "Your box has been delivered. Enjoy the neighborhood drop.",
   },
 };
-
-function moneyTotals(subtotalCents: number, promoCode: string | null) {
-  const deliveryFeeCents = 0;
-  const serviceFeeCents = 400;
-  const discountCents =
-    promoCode?.toUpperCase() === "WELCOME10"
-      ? Math.round(subtotalCents * 0.1)
-      : 0;
-  const totalCents =
-    subtotalCents + deliveryFeeCents + serviceFeeCents - discountCents;
-
-  return { deliveryFeeCents, serviceFeeCents, discountCents, totalCents };
-}
 
 function createTimelineEvent(status: OrderStatus): OrderTimelineEvent {
   const meta = STATUS_META[status];
@@ -195,6 +184,7 @@ export async function createOrder(
     address: string;
     deliveryWindow: string;
     paymentMethod: PaymentMethod;
+    checkoutMetadata?: CheckoutMetadata | null;
   },
 ) {
   const plan = await getPlanById(input.planId);
@@ -202,7 +192,7 @@ export async function createOrder(
     throw new Error("Unknown plan");
   }
   const promoCode = input.promoCode?.trim() ? input.promoCode.trim() : null;
-  const totals = moneyTotals(plan.price_cents, promoCode);
+  const totals = computeOrderTotals(plan.price_cents, promoCode);
   const id = `ord_${Date.now().toString(36)}`;
   const supabase = await createSupabaseServerClient();
   const createdAt = new Date().toISOString();
@@ -225,6 +215,7 @@ export async function createOrder(
     address: input.address,
     delivery_window: input.deliveryWindow,
     created_at: createdAt,
+    checkout_metadata: input.checkoutMetadata ?? null,
   });
 
   if (insertOrderError) {
