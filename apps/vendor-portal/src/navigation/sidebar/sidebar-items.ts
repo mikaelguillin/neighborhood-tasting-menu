@@ -2,7 +2,7 @@ import {
   CalendarClock,
   Gauge,
   ListOrdered,
-  Menu,
+  MapPin,
   Store,
   type LucideIcon,
   Users,
@@ -59,10 +59,11 @@ export const sidebarItems: NavGroup[] = [
         icon: Gauge,
       },
       {
-        title: "Menu Management",
-        url: "/dashboard/productivity",
-        icon: Menu,
+        title: "Neighborhoods",
+        url: "/dashboard/neighborhoods",
+        icon: MapPin,
       },
+      // Menu Management: /dashboard/productivity (stub)
     ],
   },
   {
@@ -72,8 +73,7 @@ export const sidebarItems: NavGroup[] = [
       {
         title: "Team Members",
         url: "/dashboard/coming-soon",
-        icon: Users,
-        comingSoon: true,
+        icon: Users
       }
     ],
   },

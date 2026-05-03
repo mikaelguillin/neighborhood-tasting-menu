@@ -8,11 +8,13 @@ const createPayloadSchema = z.object({
   mode: z.literal("create"),
   vendorName: z.string().trim().min(2).max(80),
   description: z.string().trim().max(280).optional(),
+  neighborhoodSlugs: z.array(z.string().trim().min(1).max(80)).max(25).optional(),
 });
 
 const linkPayloadSchema = z.object({
   mode: z.literal("link"),
   vendorId: z.string().uuid(),
+  neighborhoodSlugs: z.array(z.string().trim().min(1).max(80)).max(25).optional(),
 });
 
 const payloadSchema = z.union([createPayloadSchema, linkPayloadSchema]);
@@ -23,6 +25,20 @@ function slugify(value: string) {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .slice(0, 48);
+}
+
+function normalizeNeighborhoodSlugs(raw: string[] | undefined) {
+  if (!raw) {
+    return [];
+  }
+
+  return Array.from(
+    new Set(
+      raw
+        .map((value) => value.trim())
+        .filter(Boolean),
+    ),
+  );
 }
 
 async function resolveUniqueSlug(supabase: ReturnType<typeof createSupabaseAdminClient>, vendorName: string) {
@@ -82,6 +98,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "User is already linked to a vendor" }, { status: 409 });
   }
 
+  const neighborhoodSlugs = normalizeNeighborhoodSlugs(payload.neighborhoodSlugs);
+
   let vendorId: string;
 
   if (payload.mode === "create") {
@@ -129,6 +147,36 @@ export async function POST(request: Request) {
 
   if (linkError) {
     return NextResponse.json({ error: "Unable to link user to vendor" }, { status: 500 });
+  }
+
+  if (neighborhoodSlugs.length > 0) {
+    const { data: neighborhoods, error: neighborhoodsError } = await admin
+      .from("neighborhoods")
+      .select("slug")
+      .in("slug", neighborhoodSlugs);
+
+    if (neighborhoodsError) {
+      return NextResponse.json({ error: "Unable to validate neighborhoods" }, { status: 500 });
+    }
+
+    const validSlugs = new Set((neighborhoods ?? []).map((row) => row.slug));
+    if (validSlugs.size !== neighborhoodSlugs.length) {
+      return NextResponse.json({ error: "One or more neighborhoods are invalid" }, { status: 400 });
+    }
+
+    const rows = neighborhoodSlugs.map((neighborhoodSlug) => ({
+      neighborhood_slug: neighborhoodSlug,
+      vendor_id: vendorId,
+    }));
+
+    const { error: neighborhoodLinkError } = await admin.from("neighborhood_vendors").upsert(rows, {
+      onConflict: "neighborhood_slug,vendor_id",
+      ignoreDuplicates: true,
+    });
+
+    if (neighborhoodLinkError) {
+      return NextResponse.json({ error: "Unable to link vendor to neighborhoods" }, { status: 500 });
+    }
   }
 
   return NextResponse.json({ ok: true, vendorId });

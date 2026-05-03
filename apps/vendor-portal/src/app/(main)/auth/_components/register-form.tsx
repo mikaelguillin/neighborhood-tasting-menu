@@ -50,6 +50,7 @@ type VendorOption = {
   id: string;
   name: string;
   slug: string;
+  neighborhoodSlugs?: string[];
 };
 
 export function RegisterForm() {

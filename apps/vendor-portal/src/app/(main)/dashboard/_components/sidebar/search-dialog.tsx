@@ -2,7 +2,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 
-import { CalendarClock, Gauge, ListOrdered, Menu, Search, Store } from "lucide-react";
+import { CalendarClock, Gauge, ListOrdered, MapPin, Menu, Search, Store } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -30,7 +30,8 @@ const searchItems: SearchItem[] = [
   { group: "Vendor Workspace", icon: Store, label: "Profile", url: "/dashboard/crm" },
   { group: "Vendor Workspace", icon: CalendarClock, label: "Availability", url: "/dashboard/finance" },
   { group: "Vendor Workspace", icon: Gauge, label: "Analytics", url: "/dashboard/analytics" },
-  { group: "Vendor Workspace", icon: Menu, label: "Menu Management", url: "/dashboard/productivity" }
+  { group: "Vendor Workspace", icon: MapPin, label: "Neighborhoods", url: "/dashboard/neighborhoods" },
+  { group: "Vendor Workspace", icon: Menu, label: "Menu Management", url: "/dashboard/productivity" },
 ];
 
 export function SearchDialog() {
