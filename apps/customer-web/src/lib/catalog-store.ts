@@ -32,19 +32,22 @@ function parseNeighborhoodVendors(value: unknown): NeighborhoodVendor[] {
     .filter((entry): entry is NeighborhoodVendor => entry !== null);
 }
 
-function toNeighborhood(row: {
-  slug: string;
-  name: string;
-  borough: string;
-  tagline: string;
-  description: string;
-  image_url: string;
-  neighborhood_vendors?: unknown;
-  vendors?: unknown;
-  items: string[];
-  highlight: boolean;
-  badge: string | null;
-}): Neighborhood {
+function toNeighborhood(
+  row: {
+    slug: string;
+    name: string;
+    borough: string;
+    tagline: string;
+    description: string;
+    image_url: string;
+    neighborhood_vendors?: unknown;
+    vendors?: unknown;
+    highlight: boolean;
+    badge: string | null;
+  },
+  /** Product display names from `vendor_inventory_product_neighborhoods` (tasting lineup). */
+  items: string[],
+): Neighborhood {
   const vendors = row.neighborhood_vendors
     ? parseNeighborhoodVendors(row.neighborhood_vendors)
     : parseVendors(row.vendors);
@@ -57,10 +60,63 @@ function toNeighborhood(row: {
     description: row.description,
     image: row.image_url,
     vendors,
-    items: row.items,
+    items,
     highlight: row.highlight,
     badge: row.badge ?? undefined,
   };
+}
+
+type ProductNameEmbed = { name: string };
+
+function productNameFromRow(products: ProductNameEmbed | ProductNameEmbed[] | null | undefined): string | null {
+  const p = products;
+  const row = Array.isArray(p) ? p[0] : p;
+  return row?.name ?? null;
+}
+
+async function loadProductDisplayNamesByNeighborhoodSlug(): Promise<Map<string, string[]>> {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("vendor_inventory_product_neighborhoods")
+    .select("neighborhood_slug,products(name)");
+
+  if (error || !data) return new Map();
+
+  const map = new Map<string, string[]>();
+  for (const row of data) {
+    const label = productNameFromRow(
+      row.products as ProductNameEmbed | ProductNameEmbed[] | null | undefined,
+    );
+    if (!label) continue;
+    const list = map.get(row.neighborhood_slug) ?? [];
+    if (!list.includes(label)) list.push(label);
+    map.set(row.neighborhood_slug, list);
+  }
+  for (const list of map.values()) {
+    list.sort((a, b) => a.localeCompare(b));
+  }
+  return map;
+}
+
+async function listProductDisplayNamesForNeighborhoodSlug(slug: string): Promise<string[]> {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("vendor_inventory_product_neighborhoods")
+    .select("products(name)")
+    .eq("neighborhood_slug", slug);
+
+  if (error || !data) return [];
+  const names = [
+    ...new Set(
+      data
+        .map((r) =>
+          productNameFromRow(r.products as ProductNameEmbed | ProductNameEmbed[] | null | undefined),
+        )
+        .filter((n): n is string => typeof n === "string" && n.length > 0),
+    ),
+  ];
+  names.sort((a, b) => a.localeCompare(b));
+  return names;
 }
 
 export async function listPlans(): Promise<PlanOption[]> {
@@ -91,11 +147,16 @@ export async function listNeighborhoods(params: {
   pageSize: number;
 }) {
   const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase
-    .from("neighborhoods")
-    .select(
-      "slug,name,borough,tagline,description,image_url,items,highlight,badge,neighborhood_vendors(vendors(name,description))",
-    );
+  const [nhResult, productBySlug] = await Promise.all([
+    supabase
+      .from("neighborhoods")
+      .select(
+        "slug,name,borough,tagline,description,image_url,highlight,badge,neighborhood_vendors(vendors(name,description))",
+      ),
+    loadProductDisplayNamesByNeighborhoodSlug(),
+  ]);
+
+  const { data, error } = nhResult;
 
   if (error || !data) {
     return { items: [], total: 0, page: 1, pageSize: params.pageSize, totalPages: 1 };
@@ -103,7 +164,7 @@ export async function listNeighborhoods(params: {
 
   const normalizedQ = params.q.trim().toLowerCase();
   const filtered = data
-    .map((row) => toNeighborhood(row))
+    .map((row) => toNeighborhood(row, productBySlug.get(row.slug) ?? []))
     .filter((neighborhood) => {
       if (params.borough !== "all" && neighborhood.borough !== params.borough) return false;
       if (!normalizedQ) return true;
@@ -145,16 +206,21 @@ export async function listNeighborhoods(params: {
 
 export async function getNeighborhoodBySlug(slug: string) {
   const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase
-    .from("neighborhoods")
-    .select(
-      "slug,name,borough,tagline,description,image_url,items,highlight,badge,neighborhood_vendors(vendors(name,description))",
-    )
-    .eq("slug", slug)
-    .maybeSingle();
+  const [nhResult, productIds] = await Promise.all([
+    supabase
+      .from("neighborhoods")
+      .select(
+        "slug,name,borough,tagline,description,image_url,highlight,badge,neighborhood_vendors(vendors(name,description))",
+      )
+      .eq("slug", slug)
+      .maybeSingle(),
+    listProductDisplayNamesForNeighborhoodSlug(slug),
+  ]);
+
+  const { data, error } = nhResult;
 
   if (error || !data) return null;
-  return toNeighborhood(data);
+  return toNeighborhood(data, productIds);
 }
 
 export async function listNeighborhoodSlugs() {

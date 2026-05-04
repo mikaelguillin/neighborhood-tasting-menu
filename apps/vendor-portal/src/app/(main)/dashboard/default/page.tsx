@@ -6,7 +6,7 @@ export default function Page() {
       <section className="space-y-1">
         <h1 className="font-semibold text-2xl tracking-tight">Orders</h1>
         <p className="text-muted-foreground text-sm">
-          Run daily operations with queue priorities, SLA visibility, and inventory controls.
+          Run daily operations with queue priorities and SLA visibility. Manage stock on the Inventory page.
         </p>
       </section>
       <OpsDashboard />

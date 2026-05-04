@@ -3,6 +3,7 @@ import {
   Gauge,
   ListOrdered,
   MapPin,
+  Package,
   Store,
   type LucideIcon,
   Users,
@@ -42,6 +43,11 @@ export const sidebarItems: NavGroup[] = [
         title: "Orders",
         url: "/dashboard/default",
         icon: ListOrdered,
+      },
+      {
+        title: "Inventory",
+        url: "/dashboard/inventory",
+        icon: Package,
       },
       {
         title: "Profile",

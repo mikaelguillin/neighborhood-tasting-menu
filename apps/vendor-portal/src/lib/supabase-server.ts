@@ -24,10 +24,18 @@ export async function createSupabaseServerClient() {
         return cookieStore.get(name)?.value;
       },
       set(name, value, options) {
-        cookieStore.set({ name, value, ...options });
+        try {
+          cookieStore.set({ name, value, ...options });
+        } catch {
+          // Server Components cannot mutate cookies; session refresh runs in Route Handlers / middleware.
+        }
       },
       remove(name, options) {
-        cookieStore.set({ name, value: "", ...options });
+        try {
+          cookieStore.set({ name, value: "", ...options });
+        } catch {
+          // Same as set — ignore when not in a mutable request context.
+        }
       },
     },
   });

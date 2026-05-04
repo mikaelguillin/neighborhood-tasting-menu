@@ -100,6 +100,9 @@ export function InventoryControls({
                 </div>
                 <div>
                   <p className="font-medium text-sm">{item.name}</p>
+                  {item.description ? (
+                    <p className="text-muted-foreground line-clamp-2 text-xs">{item.description}</p>
+                  ) : null}
                   <p className="text-muted-foreground text-xs">Threshold: {item.lowStockThreshold}</p>
                 </div>
                 <div className="flex items-center gap-2">

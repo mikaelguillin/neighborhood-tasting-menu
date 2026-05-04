@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
-import { InventoryControls } from "./inventory-controls";
 import { OpsMetricCards } from "./ops-metric-cards";
 import { QueuePriorities } from "./queue-priorities";
 import type { InventoryItem, QueueOrder } from "@/lib/vendor-ops-store";
@@ -48,7 +47,6 @@ export function OpsDashboard() {
     <div className="space-y-4 md:space-y-6">
       <OpsMetricCards queue={queue} inventory={inventory} />
       <QueuePriorities queue={queue} onQueueChange={loadQueue} />
-      <InventoryControls items={inventory} onInventoryChange={loadInventory} />
     </div>
   );
 }

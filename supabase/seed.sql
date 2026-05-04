@@ -161,8 +161,6 @@ insert into public.neighborhoods (
   tagline,
   description,
   image_url,
-  vendors,
-  items,
   highlight,
   badge
 )
@@ -174,14 +172,6 @@ values
     'Sourdough, cold brew & Brooklyn-roasted comfort.',
     'A pilot box from the LIC waterfront - slow-fermented sourdough, hand-rolled bagels, and small-batch pantry staples.',
     '/assets/box-lic.jpg',
-    '[{"name":"Hunters Point Bakery","craft":"Sourdough & country breads"},{"name":"5 Borough Bagel Co.","craft":"Hand-rolled bagels"},{"name":"Vernon Pantry","craft":"Nut butters & preserves"},{"name":"Pier 26 Roasters","craft":"Single-origin coffee"}]'::jsonb,
-    array[
-      'Country sourdough loaf - Hunters Point Bakery',
-      'Half-dozen hand-rolled bagels - 5 Borough Bagel Co.',
-      'Small-batch peanut butter - Vernon Pantry',
-      '12oz single-origin cold brew - Pier 26 Roasters',
-      'Dark chocolate bar - Queens Cocoa'
-    ],
     true,
     'Pilot Neighborhood'
   ),
@@ -192,14 +182,6 @@ values
     'Croissants, brie, charcuterie - a Sunday morning, boxed.',
     'An unhurried West Village brunch in a single delivery.',
     '/assets/box-west-village.jpg',
-    '[{"name":"Rue Perry","craft":"French viennoiserie"},{"name":"The Cheese Counter","craft":"Affineur & cheesemonger"},{"name":"Carmine St. Salumi","craft":"Cured meats"},{"name":"Bleecker Pantry","craft":"Preserves & pantry"}]'::jsonb,
-    array[
-      'Two all-butter croissants - Rue Perry',
-      'Mini wheel of brie - The Cheese Counter',
-      'Sliced prosciutto & coppa - Carmine St. Salumi',
-      'Black mission fig jam - Bleecker Pantry',
-      'Box of cocoa-dusted truffles - Greenwich Chocolatier'
-    ],
     false,
     null
   ),
@@ -210,14 +192,6 @@ values
     'Phyllo, honey & olives from 30th Avenue.',
     'A walk down 30th Avenue without leaving your apartment.',
     '/assets/box-astoria.jpg',
-    '[{"name":"Athena Sweets","craft":"Greek pastries"},{"name":"30th Ave Bakery","craft":"Pita & flatbreads"},{"name":"Ditmars Deli","craft":"Olives & antipasti"},{"name":"Hellenic Apiaries","craft":"Wildflower honey"}]'::jsonb,
-    array[
-      'Pistachio baklava (8 pieces) - Athena Sweets',
-      'Fresh pita & lavash - 30th Ave Bakery',
-      'Marinated Kalamata olives - Ditmars Deli',
-      'Wildflower honey jar - Hellenic Apiaries',
-      'Spiced halva bar - Levantine & Co.'
-    ],
     false,
     null
   ),
@@ -228,14 +202,6 @@ values
     'Black-and-white cookies, knishes & a Sunday babka.',
     'The deli classics that built the LES, gathered into one box.',
     '/assets/box-les.jpg',
-    '[{"name":"Orchard St. Bakeshop","craft":"Bagels & bialys"},{"name":"Rivington Knish Co.","craft":"Knishes & savory pastries"},{"name":"Essex St. Picklers","craft":"Pickles & ferments"},{"name":"Delancey Bakery","craft":"Babka & rugelach"}]'::jsonb,
-    array[
-      'Half-dozen everything bagels - Orchard St. Bakeshop',
-      'Potato knishes (4) - Rivington Knish Co.',
-      'Half-sour pickle jar - Essex St. Picklers',
-      'Mini chocolate babka - Delancey Bakery',
-      'Black-and-white cookies (2) - Houston St. Pastry'
-    ],
     false,
     null
   )
@@ -246,11 +212,17 @@ set
   tagline = excluded.tagline,
   description = excluded.description,
   image_url = excluded.image_url,
-  vendors = excluded.vendors,
-  items = excluded.items,
   highlight = excluded.highlight,
   badge = excluded.badge,
   updated_at = now();
+
+insert into public.neighborhood_vendors (neighborhood_slug, vendor_id)
+values
+  ('long-island-city', '33333333-3333-3333-3333-333333333333'),
+  ('west-village', '33333333-3333-3333-3333-333333333333'),
+  ('astoria', '33333333-3333-3333-3333-333333333333'),
+  ('lower-east-side', '33333333-3333-3333-3333-333333333333')
+on conflict (neighborhood_slug, vendor_id) do nothing;
 
 insert into public.orders (
   id,
@@ -264,6 +236,7 @@ insert into public.orders (
   discount_cents,
   total_cents,
   promo_code,
+  payment_method,
   address,
   delivery_window,
   created_at
@@ -280,6 +253,7 @@ values (
   0,
   7600,
   null,
+  'card',
   '50-25 Center Blvd, Long Island City, NY',
   'Friday 4:00 PM - 7:00 PM',
   now() - interval '90 minutes'
@@ -311,18 +285,66 @@ values
   ('q_1003', '33333333-3333-3333-3333-333333333333', null, 'J. Chen', 'West Village', 8, now() + interval '27 minutes', 27, 'preparing', 'high')
 on conflict (id) do nothing;
 
-insert into public.vendor_inventory_items (
+insert into public.products (id, vendor_id, name, description)
+values
+  (
+    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaa0001',
+    '33333333-3333-3333-3333-333333333333',
+    'Country Sourdough Loaf',
+    'Slow-fermented country loaf from the demo kitchen.'
+  ),
+  (
+    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaa0002',
+    '33333333-3333-3333-3333-333333333333',
+    'Mini Chocolate Babka',
+    null
+  ),
+  (
+    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaa0003',
+    '33333333-3333-3333-3333-333333333333',
+    'Half-Dozen Bagels',
+    'Hand-rolled assorted bagels.'
+  ),
+  (
+    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaa0004',
+    '33333333-3333-3333-3333-333333333333',
+    'Wildflower Honey Jar',
+    'Small-batch local honey.'
+  )
+on conflict (id) do update
+set
+  name = excluded.name,
+  description = excluded.description,
+  updated_at = now();
+
+insert into public.vendor_inventory_products (
   id,
   vendor_id,
-  name,
+  product_id,
   stock,
   low_stock_threshold,
   available,
   out_of_stock_reason
 )
 values
-  ('inv_001', '33333333-3333-3333-3333-333333333333', 'Country Sourdough Loaf', 32, 15, true, null),
-  ('inv_002', '33333333-3333-3333-3333-333333333333', 'Mini Chocolate Babka', 9, 10, true, null),
-  ('inv_003', '33333333-3333-3333-3333-333333333333', 'Half-Dozen Bagels', 0, 8, false, 'Flour delivery delayed'),
-  ('inv_004', '33333333-3333-3333-3333-333333333333', 'Wildflower Honey Jar', 14, 12, true, null)
-on conflict (id) do nothing;
+  ('inv_001', '33333333-3333-3333-3333-333333333333', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaa0001', 32, 15, true, null),
+  ('inv_002', '33333333-3333-3333-3333-333333333333', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaa0002', 9, 10, true, null),
+  ('inv_003', '33333333-3333-3333-3333-333333333333', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaa0003', 0, 8, false, 'Flour delivery delayed'),
+  ('inv_004', '33333333-3333-3333-3333-333333333333', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaa0004', 14, 12, true, null)
+on conflict (id) do update
+set
+  product_id = excluded.product_id,
+  stock = excluded.stock,
+  low_stock_threshold = excluded.low_stock_threshold,
+  available = excluded.available,
+  out_of_stock_reason = excluded.out_of_stock_reason,
+  updated_at = now();
+
+insert into public.vendor_inventory_product_neighborhoods (product_id, neighborhood_slug, vendor_id)
+values
+  ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaa0001', 'long-island-city', '33333333-3333-3333-3333-333333333333'),
+  ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaa0002', 'long-island-city', '33333333-3333-3333-3333-333333333333'),
+  ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaa0003', 'astoria', '33333333-3333-3333-3333-333333333333'),
+  ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaa0004', 'west-village', '33333333-3333-3333-3333-333333333333'),
+  ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaa0001', 'lower-east-side', '33333333-3333-3333-3333-333333333333')
+on conflict (product_id, neighborhood_slug) do nothing;

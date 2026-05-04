@@ -2,7 +2,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 
-import { CalendarClock, Gauge, ListOrdered, MapPin, Menu, Search, Store } from "lucide-react";
+import { CalendarClock, Gauge, ListOrdered, MapPin, Menu, Package, Search, Store } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -27,6 +27,7 @@ interface SearchItem {
 
 const searchItems: SearchItem[] = [
   { group: "Vendor Workspace", icon: ListOrdered, label: "Orders", url: "/dashboard/default" },
+  { group: "Vendor Workspace", icon: Package, label: "Inventory", url: "/dashboard/inventory" },
   { group: "Vendor Workspace", icon: Store, label: "Profile", url: "/dashboard/crm" },
   { group: "Vendor Workspace", icon: CalendarClock, label: "Availability", url: "/dashboard/finance" },
   { group: "Vendor Workspace", icon: Gauge, label: "Analytics", url: "/dashboard/analytics" },

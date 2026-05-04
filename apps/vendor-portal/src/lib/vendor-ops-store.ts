@@ -15,7 +15,9 @@ export type QueueOrder = {
 
 export type InventoryItem = {
   id: string;
+  productId: string;
   name: string;
+  description: string | null;
   stock: number;
   lowStockThreshold: number;
   available: boolean;
@@ -48,17 +50,24 @@ function toQueueOrder(row: {
   };
 }
 
+type ProductEmbed = { name: string; description: string | null };
+
 function toInventoryItem(row: {
   id: string;
-  name: string;
+  product_id: string;
   stock: number;
   low_stock_threshold: number;
   available: boolean;
   out_of_stock_reason: string | null;
+  products: ProductEmbed | ProductEmbed[] | null;
 }): InventoryItem {
+  const p = row.products;
+  const product = Array.isArray(p) ? p[0] : p;
   return {
     id: row.id,
-    name: row.name,
+    productId: row.product_id,
+    name: product?.name ?? "",
+    description: product?.description ?? null,
     stock: row.stock,
     lowStockThreshold: row.low_stock_threshold,
     available: row.available,
@@ -103,10 +112,12 @@ export async function updateQueueStatus(vendorId: string, id: string, status: Qu
 export async function getInventoryItems(vendorId: string) {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
-    .from("vendor_inventory_items")
-    .select("id,name,stock,low_stock_threshold,available,out_of_stock_reason")
+    .from("vendor_inventory_products")
+    .select(
+      "id,product_id,stock,low_stock_threshold,available,out_of_stock_reason,products(name,description)",
+    )
     .eq("vendor_id", vendorId)
-    .order("name", { ascending: true });
+    .order("name", { ascending: true, foreignTable: "products" });
 
   if (error || !data) return [];
   return data.map(toInventoryItem);
@@ -130,11 +141,13 @@ export async function updateInventoryItem(
 
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
-    .from("vendor_inventory_items")
+    .from("vendor_inventory_products")
     .update(payload)
     .eq("vendor_id", vendorId)
     .eq("id", id)
-    .select("id,name,stock,low_stock_threshold,available,out_of_stock_reason")
+    .select(
+      "id,product_id,stock,low_stock_threshold,available,out_of_stock_reason,products(name,description)",
+    )
     .maybeSingle();
 
   if (error || !data) return null;
@@ -151,7 +164,7 @@ export async function bulkSetInventoryAvailability(vendorId: string, ids: string
   };
 
   const { error } = await supabase
-    .from("vendor_inventory_items")
+    .from("vendor_inventory_products")
     .update(updatePayload)
     .eq("vendor_id", vendorId)
     .in("id", ids);

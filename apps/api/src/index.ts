@@ -40,7 +40,7 @@ const neighborhoods: NeighborhoodRecord[] = [
     description: "A pilot box from the LIC waterfront featuring breads, bagels, and pantry makers.",
     badge: "Pilot Neighborhood",
     highlight: true,
-    items: ["Country sourdough loaf", "Half-dozen hand-rolled bagels", "Single-origin cold brew"],
+    items: [],
     vendors: [
       { name: "Hunters Point Bakery", craft: "Sourdough & country breads" },
       { name: "5 Borough Bagel Co.", craft: "Hand-rolled bagels" },
@@ -52,7 +52,7 @@ const neighborhoods: NeighborhoodRecord[] = [
     borough: "Manhattan",
     tagline: "Croissants, brie, charcuterie — a Sunday morning, boxed.",
     description: "A brunch-forward box with viennoiserie, cheese, charcuterie, and preserves.",
-    items: ["All-butter croissants", "Mini wheel of brie", "Sliced prosciutto & coppa"],
+    items: [],
     vendors: [
       { name: "Rue Perry", craft: "French viennoiserie" },
       { name: "The Cheese Counter", craft: "Affineur & cheesemonger" },
@@ -64,7 +64,7 @@ const neighborhoods: NeighborhoodRecord[] = [
     borough: "Queens",
     tagline: "Phyllo, honey & olives from 30th Avenue.",
     description: "A walk down 30th Avenue with Greek and Levantine specialties.",
-    items: ["Pistachio baklava", "Fresh pita & lavash", "Wildflower honey jar"],
+    items: [],
     vendors: [
       { name: "Athena Sweets", craft: "Greek pastries" },
       { name: "30th Ave Bakery", craft: "Pita & flatbreads" },
@@ -76,7 +76,7 @@ const neighborhoods: NeighborhoodRecord[] = [
     borough: "Manhattan",
     tagline: "Black-and-white cookies, knishes & a Sunday babka.",
     description: "Classic deli staples and pastries from the Lower East Side.",
-    items: ["Everything bagels", "Potato knishes", "Mini chocolate babka"],
+    items: [],
     vendors: [
       { name: "Orchard St. Bakeshop", craft: "Bagels & bialys" },
       { name: "Rivington Knish Co.", craft: "Knishes & savory pastries" },
