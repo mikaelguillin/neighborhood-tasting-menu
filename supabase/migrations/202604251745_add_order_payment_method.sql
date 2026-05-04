@@ -9,6 +9,9 @@ alter table public.orders
 alter column payment_method set not null;
 
 alter table public.orders
+alter column payment_method set default 'card';
+
+alter table public.orders
 drop constraint if exists orders_payment_method_check;
 
 alter table public.orders

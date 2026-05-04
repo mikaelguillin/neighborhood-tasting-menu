@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ArrowRight, Loader2 } from "lucide-react";
+import { CancelOrderButton } from "@/components/cancel-order-button";
 import { Button } from "@/components/ui/button";
 
 type OrderItem = {
@@ -23,6 +24,7 @@ function centsToMoney(value: number) {
 export function OrdersList() {
   const [items, setItems] = useState<OrderItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -46,7 +48,7 @@ export function OrdersList() {
 
     load();
     return () => controller.abort();
-  }, []);
+  }, [reloadKey]);
 
   if (loading) {
     return (
@@ -87,8 +89,15 @@ export function OrdersList() {
               {new Date(order.createdAt).toLocaleString()} - {order.status.replaceAll("_", " ")}
             </p>
           </div>
-          <div className="mt-4 flex items-center gap-3 md:mt-0">
+          <div className="mt-4 flex flex-wrap items-center gap-3 md:mt-0">
             <p className="text-base font-semibold">{centsToMoney(order.totalCents)}</p>
+            <CancelOrderButton
+              orderId={order.id}
+              status={order.status}
+              triggerLabel="Cancel"
+              buttonVariant="ghost"
+              onCancelled={() => setReloadKey((k) => k + 1)}
+            />
             <Button variant="outline" asChild>
               <Link href={`/orders/${order.id}`}>
                 Timeline <ArrowRight className="h-4 w-4" />
