@@ -45,6 +45,11 @@ export const sidebarItems: NavGroup[] = [
         icon: ListOrdered,
       },
       {
+        title: "Neighborhoods",
+        url: "/dashboard/neighborhoods",
+        icon: MapPin,
+      },
+      {
         title: "Inventory",
         url: "/dashboard/inventory",
         icon: Package,
@@ -63,12 +68,7 @@ export const sidebarItems: NavGroup[] = [
         title: "Analytics",
         url: "/dashboard/analytics",
         icon: Gauge,
-      },
-      {
-        title: "Neighborhoods",
-        url: "/dashboard/neighborhoods",
-        icon: MapPin,
-      },
+      }
       // Menu Management: /dashboard/productivity (stub)
     ],
   },

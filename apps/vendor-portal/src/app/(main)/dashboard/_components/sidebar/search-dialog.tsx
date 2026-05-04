@@ -27,11 +27,11 @@ interface SearchItem {
 
 const searchItems: SearchItem[] = [
   { group: "Vendor Workspace", icon: ListOrdered, label: "Orders", url: "/dashboard/default" },
+  { group: "Vendor Workspace", icon: MapPin, label: "Neighborhoods", url: "/dashboard/neighborhoods" },
   { group: "Vendor Workspace", icon: Package, label: "Inventory", url: "/dashboard/inventory" },
   { group: "Vendor Workspace", icon: Store, label: "Profile", url: "/dashboard/crm" },
   { group: "Vendor Workspace", icon: CalendarClock, label: "Availability", url: "/dashboard/finance" },
   { group: "Vendor Workspace", icon: Gauge, label: "Analytics", url: "/dashboard/analytics" },
-  { group: "Vendor Workspace", icon: MapPin, label: "Neighborhoods", url: "/dashboard/neighborhoods" },
   { group: "Vendor Workspace", icon: Menu, label: "Menu Management", url: "/dashboard/productivity" },
 ];
 
