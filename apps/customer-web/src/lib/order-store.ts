@@ -205,12 +205,12 @@ export async function createOrder(
 
   const timeline = createTimelineEvent("placed");
 
-  const { error: insertOrderError } = await supabase.from("orders").insert({
+  const baseInsert = {
     id,
     user_id: userId,
     plan_id: input.planId,
     plan_name: plan.name,
-    status: "placed",
+    status: "placed" as const,
     subtotal_cents: plan.price_cents,
     delivery_fee_cents: totals.deliveryFeeCents,
     service_fee_cents: totals.serviceFeeCents,
@@ -221,8 +221,23 @@ export async function createOrder(
     address: input.address,
     delivery_window: input.deliveryWindow,
     created_at: createdAt,
-    checkout_metadata: input.checkoutMetadata ?? null,
-  });
+  };
+
+  const insertPayload =
+    input.checkoutMetadata != null
+      ? { ...baseInsert, checkout_metadata: input.checkoutMetadata }
+      : baseInsert;
+
+  let { error: insertOrderError } = await supabase.from("orders").insert(insertPayload);
+
+  const checkoutMetaUnavailable =
+    insertOrderError?.code === "PGRST204" &&
+    typeof insertOrderError.message === "string" &&
+    insertOrderError.message.includes("checkout_metadata");
+
+  if (checkoutMetaUnavailable && input.checkoutMetadata != null) {
+    insertOrderError = (await supabase.from("orders").insert(baseInsert)).error;
+  }
 
   if (insertOrderError) {
     throw insertOrderError;
