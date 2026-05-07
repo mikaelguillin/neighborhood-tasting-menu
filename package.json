@@ -6,6 +6,8 @@
   "scripts": {
     "dev:customer": "pnpm --filter customer-web dev",
     "dev:vendor": "pnpm --filter vendor-portal dev",
+    "build:customer": "pnpm --filter customer-web build",
+    "build:vendor": "pnpm --filter vendor-portal build",
     "dev:api": "pnpm --filter @ntm/api dev",
     "build": "pnpm -r --if-present build",
     "lint": "pnpm -r --if-present lint",
