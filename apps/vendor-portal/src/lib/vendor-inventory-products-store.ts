@@ -8,10 +8,11 @@ export type VendorInventoryProductWithNeighborhoods = {
   productId: string;
   name: string;
   description: string | null;
+  priceCents: number | null;
   neighborhoodSlugs: string[];
 };
 
-type ProductRow = { name: string; description: string | null };
+type ProductRow = { name: string; description: string | null; price_cents: number | null };
 
 function newInventoryId(): string {
   return `inv_${randomBytes(6).toString("hex")}`;
@@ -42,7 +43,7 @@ export async function listVendorInventoryProductsWithNeighborhoods(
   const supabase = await createSupabaseServerClient();
   const { data: rows, error } = await supabase
     .from("vendor_inventory_products")
-    .select("id,product_id,products(name,description)")
+    .select("id,product_id,products(name,description,price_cents)")
     .eq("vendor_id", vendorId)
     .order("name", { ascending: true, foreignTable: "products" });
 
@@ -68,6 +69,7 @@ export async function listVendorInventoryProductsWithNeighborhoods(
       productId: r.product_id,
       name: product?.name ?? "",
       description: product?.description ?? null,
+      priceCents: product?.price_cents ?? null,
       neighborhoodSlugs: (byProduct.get(r.product_id) ?? []).sort((a, b) => a.localeCompare(b)),
     };
   });
@@ -75,7 +77,7 @@ export async function listVendorInventoryProductsWithNeighborhoods(
 
 export async function createVendorInventoryProduct(
   vendorId: string,
-  input: { name: string; description?: string | null; neighborhoodSlugs?: string[] },
+  input: { name: string; description?: string | null; priceCents?: number | null; neighborhoodSlugs?: string[] },
 ): Promise<
   | { ok: true; item: VendorInventoryProductWithNeighborhoods }
   | { ok: false; reason: "invalid_neighborhoods" | "db_error"; message?: string }
@@ -96,6 +98,13 @@ export async function createVendorInventoryProduct(
   const id = newInventoryId();
   const desc = input.description?.trim();
   const description = desc ? desc : null;
+  const priceCents =
+    typeof input.priceCents === "number" && Number.isFinite(input.priceCents)
+      ? Math.trunc(input.priceCents)
+      : null;
+  if (priceCents !== null && priceCents < 0) {
+    return { ok: false, reason: "db_error", message: "price must be 0 or higher" };
+  }
 
   const { data: productRow, error: productErr } = await supabase
     .from("products")
@@ -103,8 +112,9 @@ export async function createVendorInventoryProduct(
       vendor_id: vendorId,
       name: trimmedName,
       description,
+      price_cents: priceCents,
     })
-    .select("id,name,description")
+    .select("id,name,description,price_cents")
     .maybeSingle();
 
   if (productErr || !productRow) {
@@ -140,6 +150,7 @@ export async function createVendorInventoryProduct(
       productId: productRow.id,
       name: productRow.name,
       description: productRow.description,
+      priceCents: productRow.price_cents,
       neighborhoodSlugs: [...requested].sort((a, b) => a.localeCompare(b)),
     },
   };
@@ -148,7 +159,7 @@ export async function createVendorInventoryProduct(
 export async function updateVendorInventoryProductMeta(
   vendorId: string,
   inventoryId: string,
-  input: { name?: string; description?: string | null },
+  input: { name?: string; description?: string | null; priceCents?: number | null },
 ): Promise<"ok" | "not_found" | "error"> {
   const supabase = await createSupabaseServerClient();
   const { data: existing, error: fetchErr } = await supabase
@@ -160,7 +171,7 @@ export async function updateVendorInventoryProductMeta(
 
   if (fetchErr || !existing) return "not_found";
 
-  const patch: { name?: string; description?: string | null; updated_at: string } = {
+  const patch: { name?: string; description?: string | null; price_cents?: number | null; updated_at: string } = {
     updated_at: new Date().toISOString(),
   };
   if (typeof input.name === "string") {
@@ -174,6 +185,17 @@ export async function updateVendorInventoryProductMeta(
     } else {
       const d = input.description.trim();
       patch.description = d.length > 0 ? d : null;
+    }
+  }
+  if (input.priceCents !== undefined) {
+    if (input.priceCents === null) {
+      patch.price_cents = null;
+    } else if (Number.isFinite(input.priceCents)) {
+      const cents = Math.trunc(input.priceCents);
+      if (cents < 0) return "error";
+      patch.price_cents = cents;
+    } else {
+      return "error";
     }
   }
 

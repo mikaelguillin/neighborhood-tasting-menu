@@ -43,13 +43,14 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import type { VendorInventoryProductWithNeighborhoods } from "@/lib/vendor-inventory-products-store";
 import type { NeighborhoodPickerRow } from "@/lib/vendor-neighborhoods-constants";
+import { formatPriceInput, parsePriceInputToCents } from "@/lib/utils";
 
 type NeighborhoodsPayload = {
   catalog: NeighborhoodPickerRow[];
   assignedSlugs: string[];
 };
 
-type EditFields = { name: string; description: string };
+type EditFields = { name: string; description: string; priceInput: string };
 
 function NeighborhoodPicker({
   catalogBySlug,
@@ -140,6 +141,7 @@ export function InventoryProductsManager({ onProductsChanged }: { onProductsChan
   const [addOpen, setAddOpen] = useState(false);
   const [newName, setNewName] = useState("");
   const [newDescription, setNewDescription] = useState("");
+  const [newPriceInput, setNewPriceInput] = useState("");
   const [newProductSlugs, setNewProductSlugs] = useState<string[]>([]);
   const [creating, setCreating] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -182,7 +184,10 @@ export function InventoryProductsManager({ onProductsChanged }: { onProductsChan
     setItems(invPayload.items);
     setEditFields(
       Object.fromEntries(
-        invPayload.items.map((it) => [it.id, { name: it.name, description: it.description ?? "" }]),
+        invPayload.items.map((it) => [
+          it.id,
+          { name: it.name, description: it.description ?? "", priceInput: formatPriceInput(it.priceCents) },
+        ]),
       ),
     );
   }, []);
@@ -198,6 +203,7 @@ export function InventoryProductsManager({ onProductsChanged }: { onProductsChan
   function resetAddForm() {
     setNewName("");
     setNewDescription("");
+    setNewPriceInput("");
     setNewProductSlugs([]);
   }
 
@@ -226,6 +232,11 @@ export function InventoryProductsManager({ onProductsChanged }: { onProductsChan
       setError("Enter a product name");
       return;
     }
+    const priceCents = parsePriceInputToCents(newPriceInput);
+    if (Number.isNaN(priceCents)) {
+      setError("Enter a valid price (for example 9.99)");
+      return;
+    }
     setCreating(true);
     setError(null);
     try {
@@ -235,6 +246,7 @@ export function InventoryProductsManager({ onProductsChanged }: { onProductsChan
         body: JSON.stringify({
           name: trimmed,
           description: newDescription.trim() || null,
+          priceCents,
           neighborhoodSlugs: newProductSlugs,
         }),
       });
@@ -260,6 +272,11 @@ export function InventoryProductsManager({ onProductsChanged }: { onProductsChan
       setError("Product name cannot be empty");
       return;
     }
+    const priceCents = parsePriceInputToCents(fields.priceInput);
+    if (Number.isNaN(priceCents)) {
+      setError("Enter a valid price (for example 9.99)");
+      return;
+    }
     setMutatingId(inventoryId);
     setError(null);
     try {
@@ -269,6 +286,7 @@ export function InventoryProductsManager({ onProductsChanged }: { onProductsChan
         body: JSON.stringify({
           name,
           description: fields.description.trim() || null,
+          priceCents,
         }),
       });
       const body = (await response.json().catch(() => null)) as { error?: string } | null;
@@ -377,6 +395,7 @@ export function InventoryProductsManager({ onProductsChanged }: { onProductsChan
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
+                  <TableHead>Price</TableHead>
                   <TableHead className="hidden min-w-[12rem] md:table-cell">Description</TableHead>
                   <TableHead className="hidden lg:table-cell">Neighborhoods</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
@@ -390,6 +409,9 @@ export function InventoryProductsManager({ onProductsChanged }: { onProductsChan
                     <TableRow key={item.id}>
                       <TableCell className="max-w-[14rem] font-medium">
                         <span className="line-clamp-2">{item.name}</span>
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap text-sm">
+                        {item.priceCents === null ? "—" : `$${(item.priceCents / 100).toFixed(2)}`}
                       </TableCell>
                       <TableCell className="hidden max-w-xs md:table-cell">
                         {item.description ? (
@@ -485,6 +507,16 @@ export function InventoryProductsManager({ onProductsChanged }: { onProductsChan
               />
             </div>
             <div className="grid gap-2">
+              <span className="font-medium text-muted-foreground text-xs">Price (optional)</span>
+              <Input
+                value={newPriceInput}
+                onChange={(e) => setNewPriceInput(e.target.value)}
+                placeholder="e.g. 9.99"
+                inputMode="decimal"
+                aria-label="New product price"
+              />
+            </div>
+            <div className="grid gap-2">
               <span className="font-medium text-muted-foreground text-xs">Description (optional)</span>
               <Textarea
                 value={newDescription}
@@ -554,6 +586,7 @@ export function InventoryProductsManager({ onProductsChanged }: { onProductsChan
                           ...(prev[editingItem.id] ?? {
                             name: editingItem.name,
                             description: editingItem.description ?? "",
+                            priceInput: formatPriceInput(editingItem.priceCents),
                           }),
                           name: e.target.value,
                         },
@@ -573,6 +606,7 @@ export function InventoryProductsManager({ onProductsChanged }: { onProductsChan
                           ...(prev[editingItem.id] ?? {
                             name: editingItem.name,
                             description: editingItem.description ?? "",
+                            priceInput: formatPriceInput(editingItem.priceCents),
                           }),
                           description: e.target.value,
                         },
@@ -580,6 +614,28 @@ export function InventoryProductsManager({ onProductsChanged }: { onProductsChan
                     }
                     rows={3}
                     aria-label={`Description for ${editingItem.id}`}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <span className="font-medium text-muted-foreground text-xs">Price (optional)</span>
+                  <Input
+                    value={editFields[editingItem.id]?.priceInput ?? formatPriceInput(editingItem.priceCents)}
+                    onChange={(e) =>
+                      setEditFields((prev) => ({
+                        ...prev,
+                        [editingItem.id]: {
+                          ...(prev[editingItem.id] ?? {
+                            name: editingItem.name,
+                            description: editingItem.description ?? "",
+                            priceInput: formatPriceInput(editingItem.priceCents),
+                          }),
+                          priceInput: e.target.value,
+                        },
+                      }))
+                    }
+                    placeholder="e.g. 9.99"
+                    inputMode="decimal"
+                    aria-label={`Price for ${editingItem.id}`}
                   />
                 </div>
                 <NeighborhoodPicker

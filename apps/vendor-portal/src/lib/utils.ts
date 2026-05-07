@@ -40,3 +40,18 @@ export function formatCurrency(
 
   return new Intl.NumberFormat(locale, formatOptions).format(amount);
 }
+
+export function formatPriceInput(priceCents: number | null | undefined): string {
+  if (priceCents === null || priceCents === undefined) return "";
+  return (priceCents / 100).toFixed(2);
+}
+
+export function parsePriceInputToCents(raw: string): number | null {
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  const normalized = trimmed.replace(/[$,\s]/g, "");
+  if (!/^\d+(\.\d{1,2})?$/.test(normalized)) return Number.NaN;
+  const value = Number.parseFloat(normalized);
+  if (!Number.isFinite(value) || value < 0) return Number.NaN;
+  return Math.round(value * 100);
+}

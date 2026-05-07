@@ -23,7 +23,7 @@ export async function POST(request: Request) {
   }
 
   const body = (await request.json().catch(() => null)) as
-    | { name?: unknown; description?: unknown; neighborhoodSlugs?: unknown }
+    | { name?: unknown; description?: unknown; priceCents?: unknown; neighborhoodSlugs?: unknown }
     | null;
 
   const name = typeof body?.name === "string" ? body.name : "";
@@ -36,10 +36,22 @@ export async function POST(request: Request) {
   const neighborhoodSlugs = Array.isArray(body?.neighborhoodSlugs)
     ? body.neighborhoodSlugs.filter((s): s is string => typeof s === "string")
     : undefined;
+  const hasPriceCents = body ? "priceCents" in body : false;
+  const rawPriceCents = body?.priceCents;
+  if (
+    hasPriceCents &&
+    rawPriceCents !== null &&
+    !(typeof rawPriceCents === "number" && Number.isFinite(rawPriceCents))
+  ) {
+    return NextResponse.json({ error: "priceCents must be a number or null" }, { status: 400 });
+  }
+  const priceCents =
+    rawPriceCents === undefined || rawPriceCents === null ? rawPriceCents : Math.trunc(rawPriceCents);
 
   const result = await createVendorInventoryProduct(auth.vendorId, {
     name,
     description,
+    priceCents,
     neighborhoodSlugs,
   });
 

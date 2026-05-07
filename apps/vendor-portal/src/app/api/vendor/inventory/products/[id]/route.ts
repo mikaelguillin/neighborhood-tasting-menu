@@ -12,10 +12,10 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
   }
 
   const body = (await request.json().catch(() => null)) as
-    | { name?: unknown; description?: unknown }
+    | { name?: unknown; description?: unknown; priceCents?: unknown }
     | null;
 
-  const patch: { name?: string; description?: string | null } = {};
+  const patch: { name?: string; description?: string | null; priceCents?: number | null } = {};
   if (body && typeof body.name === "string") {
     patch.name = body.name;
   }
@@ -27,9 +27,18 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
       patch.description = t.length > 0 ? t : null;
     }
   }
+  if (body && "priceCents" in body) {
+    if (body.priceCents === null) {
+      patch.priceCents = null;
+    } else if (typeof body.priceCents === "number" && Number.isFinite(body.priceCents)) {
+      patch.priceCents = Math.trunc(body.priceCents);
+    } else {
+      return NextResponse.json({ error: "priceCents must be a number or null" }, { status: 400 });
+    }
+  }
 
   if (Object.keys(patch).length === 0) {
-    return NextResponse.json({ error: "Provide name and/or description" }, { status: 400 });
+    return NextResponse.json({ error: "Provide name, description, and/or priceCents" }, { status: 400 });
   }
 
   const { id } = await context.params;
