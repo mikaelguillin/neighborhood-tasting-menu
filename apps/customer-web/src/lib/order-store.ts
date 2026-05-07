@@ -1,4 +1,4 @@
-import type { PlanId } from "@/lib/catalog-types";
+import type { PlanId } from "@ntm/types";
 import type { CheckoutMetadata } from "@/lib/checkout-types";
 import { orderCanBeCancelled } from "@/lib/order-status";
 import { computeOrderTotals } from "@/lib/order-pricing";

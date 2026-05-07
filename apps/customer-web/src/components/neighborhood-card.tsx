@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
-import type { Neighborhood } from "@/lib/catalog-types";
+import type { Neighborhood } from "@ntm/types";
 import { imageSrc } from "@/lib/image-src";
 
 export function NeighborhoodCard({ n }: { n: Neighborhood }) {

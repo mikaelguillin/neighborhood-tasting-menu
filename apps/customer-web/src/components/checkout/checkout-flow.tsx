@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, Loader2 } from "lucide-react";
-import type { Neighborhood, PlanId, PlanOption } from "@/lib/catalog-types";
+import type { Neighborhood, PlanId, PlanOption } from "@ntm/types";
 import { planOptionToCheckoutPlan } from "@/lib/checkout-types";
 import type { StructuredCheckoutAddress } from "@/lib/checkout-types";
 import { CheckoutProvider, useCheckout } from "./checkout-context";

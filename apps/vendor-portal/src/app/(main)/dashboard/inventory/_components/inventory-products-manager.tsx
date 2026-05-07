@@ -42,7 +42,7 @@ import {
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import type { VendorInventoryProductWithNeighborhoods } from "@/lib/vendor-inventory-products-store";
-import type { NeighborhoodPickerRow } from "@/lib/vendor-neighborhoods-constants";
+import type { NeighborhoodPickerRow } from "@ntm/types";
 import { formatPriceInput, parsePriceInputToCents } from "@/lib/utils";
 
 type NeighborhoodsPayload = {

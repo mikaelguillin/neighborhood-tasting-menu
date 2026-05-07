@@ -23,6 +23,9 @@
       }
     ],
     "paths": {
+      "@ntm/types": [
+        "../../packages/types/src/index.ts"
+      ],
       "@/*": [
         "./src/*"
       ]

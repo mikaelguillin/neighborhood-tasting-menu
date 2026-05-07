@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import type { Neighborhood } from "@/lib/catalog-types";
+import type { Neighborhood } from "@ntm/types";
 import {
   DELIVERY_WINDOW_LABELS,
   formatStructuredAddress,

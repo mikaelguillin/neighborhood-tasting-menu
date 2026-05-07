@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { listPlans } from "@/lib/catalog-store";
-import type { PlanOption } from "@/lib/catalog-types";
+import type { PlanOption } from "@ntm/types";
 
 export const metadata: Metadata = {
   title: "Plans & pricing — Neighborhood Tasting Menu",

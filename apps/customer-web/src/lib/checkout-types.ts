@@ -1,4 +1,4 @@
-import type { PlanId } from "@/lib/catalog-types";
+import type { PlanId, PlanOption } from "@ntm/types";
 
 /** Delivery slot ids used in checkout UI and persisted on orders. */
 export type DeliveryWindowCode = "fri-evening" | "fri-late" | "sat-morning";
@@ -45,15 +45,7 @@ export type CheckoutPlan = {
   featured?: boolean;
 };
 
-export function planOptionToCheckoutPlan(option: {
-  id: PlanId;
-  name: string;
-  cadence: string;
-  priceCents: number;
-  blurb: string;
-  perks: string[];
-  featured?: boolean;
-}): CheckoutPlan {
+export function planOptionToCheckoutPlan(option: PlanOption): CheckoutPlan {
   const price = option.priceCents / 100;
   const priceLabel = new Intl.NumberFormat("en-US", {
     style: "currency",

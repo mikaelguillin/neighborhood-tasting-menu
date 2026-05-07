@@ -46,7 +46,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "priceCents must be a number or null" }, { status: 400 });
   }
   const priceCents =
-    rawPriceCents === undefined || rawPriceCents === null ? rawPriceCents : Math.trunc(rawPriceCents);
+    rawPriceCents === undefined || rawPriceCents === null
+      ? rawPriceCents
+      : Math.trunc(rawPriceCents as number);
 
   const result = await createVendorInventoryProduct(auth.vendorId, {
     name,

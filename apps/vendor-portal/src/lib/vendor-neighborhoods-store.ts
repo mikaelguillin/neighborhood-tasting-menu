@@ -1,9 +1,15 @@
-import { NYC_BOROUGHS, type NeighborhoodPickerRow } from "@/lib/vendor-neighborhoods-constants";
+import { NYC_BOROUGHS, type NeighborhoodPickerRow } from "@ntm/types";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 
-export type { NeighborhoodPickerRow } from "@/lib/vendor-neighborhoods-constants";
-
 const NYC_BOROUGH_SET = new Set<string>(NYC_BOROUGHS);
+type NeighborhoodPickerDbRow = {
+  slug: string;
+  name: string;
+  borough: string;
+  tagline: string;
+  price_cents: number | null;
+};
+type NeighborhoodSlugRow = { neighborhood_slug: string };
 
 export async function listNycNeighborhoodsForPicker(): Promise<NeighborhoodPickerRow[]> {
   const supabase = await createSupabaseServerClient();
@@ -15,7 +21,8 @@ export async function listNycNeighborhoodsForPicker(): Promise<NeighborhoodPicke
     .order("name", { ascending: true });
 
   if (error || !data) return [];
-  return data.map((row) => ({
+  const rows = data as NeighborhoodPickerDbRow[];
+  return rows.map((row) => ({
     slug: row.slug,
     name: row.name,
     borough: row.borough,
@@ -32,7 +39,8 @@ export async function listVendorNeighborhoodSlugs(vendorId: string): Promise<str
     .eq("vendor_id", vendorId);
 
   if (error || !data) return [];
-  return data.map((r) => r.neighborhood_slug).sort((a, b) => a.localeCompare(b));
+  const rows = data as NeighborhoodSlugRow[];
+  return rows.map((r) => r.neighborhood_slug).sort((a, b) => a.localeCompare(b));
 }
 
 export type NeighborhoodProductSummary = { id: string; name: string };

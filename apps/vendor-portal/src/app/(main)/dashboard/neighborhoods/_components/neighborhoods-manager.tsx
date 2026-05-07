@@ -17,7 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { NYC_BOROUGHS, type NeighborhoodPickerRow } from "@/lib/vendor-neighborhoods-constants";
+import { NYC_BOROUGHS, type NeighborhoodPickerRow } from "@ntm/types";
 
 type NeighborhoodProductSummary = { id: string; name: string };
 

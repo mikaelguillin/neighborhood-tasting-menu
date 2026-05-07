@@ -1,7 +1,21 @@
-import type { Neighborhood, NeighborhoodVendor, PlanOption } from "@/lib/catalog-types";
+import type { Neighborhood, NeighborhoodVendor, PlanOption } from "@ntm/types";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 
 type SortOption = "featured" | "name-asc" | "name-desc";
+type ProductNeighborhoodJoinRow = {
+  neighborhood_slug: string;
+  products: ProductNameEmbed | ProductNameEmbed[] | null;
+};
+type PlanDbRow = {
+  id: PlanOption["id"];
+  name: string;
+  cadence: string;
+  price_cents: number;
+  blurb: string;
+  perks: string[];
+  featured: boolean;
+};
+type NeighborhoodSlugDbRow = { slug: string };
 
 function parseVendors(value: unknown): NeighborhoodVendor[] {
   if (!Array.isArray(value)) return [];
@@ -85,7 +99,8 @@ async function loadProductDisplayNamesByNeighborhoodSlug(): Promise<Map<string, 
   if (error || !data) return new Map();
 
   const map = new Map<string, string[]>();
-  for (const row of data) {
+  const rows = data as ProductNeighborhoodJoinRow[];
+  for (const row of rows) {
     const label = productNameFromRow(
       row.products as ProductNameEmbed | ProductNameEmbed[] | null | undefined,
     );
@@ -108,9 +123,10 @@ async function listProductDisplayNamesForNeighborhoodSlug(slug: string): Promise
     .eq("neighborhood_slug", slug);
 
   if (error || !data) return [];
+  const rows = data as { products: ProductNameEmbed | ProductNameEmbed[] | null }[];
   const names = [
     ...new Set(
-      data
+      rows
         .map((r) =>
           productNameFromRow(r.products as ProductNameEmbed | ProductNameEmbed[] | null | undefined),
         )
@@ -130,7 +146,8 @@ export async function listPlans(): Promise<PlanOption[]> {
 
   if (error || !data) return [];
 
-  return data.map((row) => ({
+  const rows = data as PlanDbRow[];
+  return rows.map((row) => ({
     id: row.id,
     name: row.name,
     cadence: row.cadence,
@@ -165,7 +182,8 @@ export async function listNeighborhoods(params: {
   }
 
   const normalizedQ = params.q.trim().toLowerCase();
-  const filtered = data
+  const rows = data as Parameters<typeof toNeighborhood>[0][];
+  const filtered = rows
     .map((row) => toNeighborhood(row, productBySlug.get(row.slug) ?? []))
     .filter((neighborhood) => {
       if (params.borough !== "all" && neighborhood.borough !== params.borough) return false;
@@ -229,5 +247,6 @@ export async function listNeighborhoodSlugs() {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase.from("neighborhoods").select("slug").order("name");
   if (error || !data) return [];
-  return data.map((item) => item.slug);
+  const rows = data as NeighborhoodSlugDbRow[];
+  return rows.map((item) => item.slug);
 }

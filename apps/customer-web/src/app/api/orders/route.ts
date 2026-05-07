@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import type { PlanId } from "@/lib/catalog-types";
+import type { PlanId } from "@ntm/types";
 import { parseCheckoutMetadata } from "@/lib/checkout-types";
 import { listPlans } from "@/lib/catalog-store";
 import { createOrder, listOrders } from "@/lib/order-store";
