@@ -161,6 +161,7 @@ insert into public.neighborhoods (
   tagline,
   description,
   image_url,
+  price_cents,
   highlight,
   badge
 )
@@ -172,6 +173,7 @@ values
     'Sourdough, cold brew & Brooklyn-roasted comfort.',
     'A pilot box from the LIC waterfront - slow-fermented sourdough, hand-rolled bagels, and small-batch pantry staples.',
     '/assets/box-lic.jpg',
+    7200,
     true,
     'Pilot Neighborhood'
   ),
@@ -182,6 +184,7 @@ values
     'Croissants, brie, charcuterie - a Sunday morning, boxed.',
     'An unhurried West Village brunch in a single delivery.',
     '/assets/box-west-village.jpg',
+    7600,
     false,
     null
   ),
@@ -192,6 +195,7 @@ values
     'Phyllo, honey & olives from 30th Avenue.',
     'A walk down 30th Avenue without leaving your apartment.',
     '/assets/box-astoria.jpg',
+    7000,
     false,
     null
   ),
@@ -202,6 +206,7 @@ values
     'Black-and-white cookies, knishes & a Sunday babka.',
     'The deli classics that built the LES, gathered into one box.',
     '/assets/box-les.jpg',
+    7400,
     false,
     null
   )
@@ -212,6 +217,7 @@ set
   tagline = excluded.tagline,
   description = excluded.description,
   image_url = excluded.image_url,
+  price_cents = excluded.price_cents,
   highlight = excluded.highlight,
   badge = excluded.badge,
   updated_at = now();

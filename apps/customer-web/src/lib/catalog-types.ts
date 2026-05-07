@@ -10,6 +10,7 @@ export type Neighborhood = {
   tagline: string;
   description: string;
   image: string;
+  priceCents: number | null;
   vendors: NeighborhoodVendor[];
   /** Vendor product display names assigned to this neighborhood (inventory lineup). */
   items: string[];

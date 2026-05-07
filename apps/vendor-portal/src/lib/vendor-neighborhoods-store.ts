@@ -9,7 +9,7 @@ export async function listNycNeighborhoodsForPicker(): Promise<NeighborhoodPicke
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("neighborhoods")
-    .select("slug,name,borough,tagline")
+    .select("slug,name,borough,tagline,price_cents")
     .in("borough", [...NYC_BOROUGHS])
     .order("borough", { ascending: true })
     .order("name", { ascending: true });
@@ -20,6 +20,7 @@ export async function listNycNeighborhoodsForPicker(): Promise<NeighborhoodPicke
     name: row.name,
     borough: row.borough,
     tagline: row.tagline,
+    priceCents: row.price_cents,
   }));
 }
 

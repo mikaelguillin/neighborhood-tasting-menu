@@ -11,4 +11,5 @@ export type NeighborhoodPickerRow = {
   name: string;
   borough: string;
   tagline: string;
+  priceCents: number | null;
 };

@@ -18,6 +18,7 @@ const neighborhoodSchema = z.object({
   borough: z.string(),
   tagline: z.string(),
   description: z.string(),
+  priceCents: z.number().int().nonnegative().nullable(),
   items: z.array(z.string()),
   vendors: z.array(
     z.object({
@@ -38,6 +39,7 @@ const neighborhoods: NeighborhoodRecord[] = [
     borough: "Queens",
     tagline: "Sourdough, cold brew & Brooklyn-roasted comfort.",
     description: "A pilot box from the LIC waterfront featuring breads, bagels, and pantry makers.",
+    priceCents: 7200,
     badge: "Pilot Neighborhood",
     highlight: true,
     items: [],
@@ -52,6 +54,7 @@ const neighborhoods: NeighborhoodRecord[] = [
     borough: "Manhattan",
     tagline: "Croissants, brie, charcuterie — a Sunday morning, boxed.",
     description: "A brunch-forward box with viennoiserie, cheese, charcuterie, and preserves.",
+    priceCents: 7600,
     items: [],
     vendors: [
       { name: "Rue Perry", craft: "French viennoiserie" },
@@ -64,6 +67,7 @@ const neighborhoods: NeighborhoodRecord[] = [
     borough: "Queens",
     tagline: "Phyllo, honey & olives from 30th Avenue.",
     description: "A walk down 30th Avenue with Greek and Levantine specialties.",
+    priceCents: 7000,
     items: [],
     vendors: [
       { name: "Athena Sweets", craft: "Greek pastries" },
@@ -76,6 +80,7 @@ const neighborhoods: NeighborhoodRecord[] = [
     borough: "Manhattan",
     tagline: "Black-and-white cookies, knishes & a Sunday babka.",
     description: "Classic deli staples and pastries from the Lower East Side.",
+    priceCents: 7400,
     items: [],
     vendors: [
       { name: "Orchard St. Bakeshop", craft: "Bagels & bialys" },

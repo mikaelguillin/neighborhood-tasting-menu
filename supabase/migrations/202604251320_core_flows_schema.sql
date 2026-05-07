@@ -36,6 +36,7 @@ create table if not exists public.neighborhoods (
   tagline text not null,
   description text not null,
   image_url text not null,
+  price_cents integer check (price_cents >= 0),
   vendors jsonb not null default '[]'::jsonb,
   items text[] not null default '{}'::text[],
   highlight boolean not null default false,

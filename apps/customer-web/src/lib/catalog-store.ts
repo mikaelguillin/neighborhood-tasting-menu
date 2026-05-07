@@ -40,6 +40,7 @@ function toNeighborhood(
     tagline: string;
     description: string;
     image_url: string;
+    price_cents: number | null;
     neighborhood_vendors?: unknown;
     vendors?: unknown;
     highlight: boolean;
@@ -59,6 +60,7 @@ function toNeighborhood(
     tagline: row.tagline,
     description: row.description,
     image: row.image_url,
+    priceCents: row.price_cents,
     vendors,
     items,
     highlight: row.highlight,
@@ -151,7 +153,7 @@ export async function listNeighborhoods(params: {
     supabase
       .from("neighborhoods")
       .select(
-        "slug,name,borough,tagline,description,image_url,highlight,badge,neighborhood_vendors(vendors(name,description))",
+        "slug,name,borough,tagline,description,image_url,price_cents,highlight,badge,neighborhood_vendors(vendors(name,description))",
       ),
     loadProductDisplayNamesByNeighborhoodSlug(),
   ]);
@@ -210,7 +212,7 @@ export async function getNeighborhoodBySlug(slug: string) {
     supabase
       .from("neighborhoods")
       .select(
-        "slug,name,borough,tagline,description,image_url,highlight,badge,neighborhood_vendors(vendors(name,description))",
+        "slug,name,borough,tagline,description,image_url,price_cents,highlight,badge,neighborhood_vendors(vendors(name,description))",
       )
       .eq("slug", slug)
       .maybeSingle(),
