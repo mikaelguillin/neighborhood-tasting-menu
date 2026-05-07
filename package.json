@@ -2,7 +2,10 @@
   "name": "neighborhood-tasting-menu",
   "version": "0.1.0",
   "private": true,
-  "packageManager": "pnpm@10.18.0",
+  "packageManager": "pnpm@9.15.9",
+  "engines": {
+    "node": "22.x"
+  },
   "scripts": {
     "dev:customer": "pnpm --filter customer-web dev",
     "dev:vendor": "pnpm --filter vendor-portal dev",
