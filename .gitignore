@@ -42,3 +42,4 @@ tsconfig.tsbuildinfo
 supabase/.temp
 supabase/.branches
 supabase/dumps
+.vercel
