@@ -4,6 +4,7 @@ import {
   getNycNeighborhoodSlugIfAssignable,
   listNycNeighborhoodsForPicker,
   listVendorNeighborhoodSlugs,
+  listVendorProductsByNeighborhoodSlug,
 } from "@/lib/vendor-neighborhoods-store";
 import { requireVendorMembership } from "@/lib/supabase-server";
 
@@ -13,12 +14,13 @@ export async function GET() {
     return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
 
-  const [catalog, assignedSlugs] = await Promise.all([
+  const [catalog, assignedSlugs, productsByNeighborhood] = await Promise.all([
     listNycNeighborhoodsForPicker(),
     listVendorNeighborhoodSlugs(auth.vendorId),
+    listVendorProductsByNeighborhoodSlug(auth.vendorId),
   ]);
 
-  return NextResponse.json({ catalog, assignedSlugs });
+  return NextResponse.json({ catalog, assignedSlugs, productsByNeighborhood });
 }
 
 export async function POST(request: Request) {

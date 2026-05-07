@@ -34,6 +34,46 @@ export async function listVendorNeighborhoodSlugs(vendorId: string): Promise<str
   return data.map((r) => r.neighborhood_slug).sort((a, b) => a.localeCompare(b));
 }
 
+export type NeighborhoodProductSummary = { id: string; name: string };
+
+type ProductJoinRow = { id: string; name: string };
+
+/** Neighborhood slug → products linked via inventory junction (names sorted, deduped by product id). */
+export async function listVendorProductsByNeighborhoodSlug(
+  vendorId: string,
+): Promise<Record<string, NeighborhoodProductSummary[]>> {
+  const supabase = await createSupabaseServerClient();
+  const { data: rows, error } = await supabase
+    .from("vendor_inventory_product_neighborhoods")
+    .select("neighborhood_slug, products(id, name)")
+    .eq("vendor_id", vendorId);
+
+  if (error || !rows) return {};
+
+  const bySlug = new Map<string, Map<string, NeighborhoodProductSummary>>();
+
+  for (const row of rows) {
+    const nested = row.products as ProductJoinRow | ProductJoinRow[] | null;
+    const product = Array.isArray(nested) ? nested[0] : nested;
+    if (!product?.id) continue;
+
+    let idMap = bySlug.get(row.neighborhood_slug);
+    if (!idMap) {
+      idMap = new Map();
+      bySlug.set(row.neighborhood_slug, idMap);
+    }
+    idMap.set(product.id, { id: product.id, name: product.name ?? "" });
+  }
+
+  const out: Record<string, NeighborhoodProductSummary[]> = {};
+  for (const [slug, idMap] of bySlug) {
+    out[slug] = [...idMap.values()].sort((a, b) =>
+      (a.name || "").localeCompare(b.name || "", undefined, { sensitivity: "base" }),
+    );
+  }
+  return out;
+}
+
 /** Returns slug if the neighborhood exists and is in an NYC borough; otherwise null. */
 export async function getNycNeighborhoodSlugIfAssignable(rawSlug: string): Promise<string | null> {
   const slug = rawSlug.trim();

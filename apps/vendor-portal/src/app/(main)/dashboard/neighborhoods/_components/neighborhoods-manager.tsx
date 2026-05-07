@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { Loader2 } from "lucide-react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -15,16 +16,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { NYC_BOROUGHS, type NeighborhoodPickerRow } from "@/lib/vendor-neighborhoods-constants";
+
+type NeighborhoodProductSummary = { id: string; name: string };
 
 type NeighborhoodsPayload = {
   catalog: NeighborhoodPickerRow[];
   assignedSlugs: string[];
+  productsByNeighborhood: Record<string, NeighborhoodProductSummary[]>;
 };
 
 export function NeighborhoodsManager() {
   const [catalog, setCatalog] = useState<NeighborhoodPickerRow[]>([]);
   const [assignedSlugs, setAssignedSlugs] = useState<string[]>([]);
+  const [productsByNeighborhood, setProductsByNeighborhood] = useState<
+    Record<string, NeighborhoodProductSummary[]>
+  >({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [boroughFilter, setBoroughFilter] = useState<string>("all");
@@ -42,6 +50,7 @@ export function NeighborhoodsManager() {
     const payload = (await response.json()) as NeighborhoodsPayload;
     setCatalog(payload.catalog);
     setAssignedSlugs(payload.assignedSlugs);
+    setProductsByNeighborhood(payload.productsByNeighborhood ?? {});
   }, []);
 
   useEffect(() => {
@@ -159,41 +168,74 @@ export function NeighborhoodsManager() {
             <p className="text-muted-foreground text-sm">No neighborhoods assigned yet.</p>
           ) : (
             <ul className="space-y-2">
-              {sortedAssignedEntries.map(({ slug, row }) => (
-                <li
-                  key={slug}
-                  className="flex flex-wrap items-center justify-between gap-2 rounded-lg border px-3 py-2"
-                >
-                  <div className="min-w-0 space-y-0.5">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="truncate font-medium">{row?.name ?? slug}</span>
-                      {row?.borough ? (
-                        <Badge className="shrink-0" variant="secondary">
-                          {row.borough}
-                        </Badge>
+              {sortedAssignedEntries.map(({ slug, row }) => {
+                const products = productsByNeighborhood[slug] ?? [];
+                return (
+                  <li key={slug} className="flex flex-col gap-2 rounded-lg border px-3 py-2">
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <div className="min-w-0 space-y-0.5">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="truncate font-medium">{row?.name ?? slug}</span>
+                          {row?.borough ? (
+                            <Badge className="shrink-0" variant="secondary">
+                              {row.borough}
+                            </Badge>
+                          ) : (
+                            <span className="shrink-0 text-muted-foreground text-xs"> ({slug})</span>
+                          )}
+                        </div>
+                        {row?.tagline ? <p className="truncate text-muted-foreground text-xs">{row.tagline}</p> : null}
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={mutatingSlug === slug}
+                        onClick={() => void handleUnassign(slug)}
+                        className="inline-flex shrink-0 items-center gap-2"
+                      >
+                        {mutatingSlug === slug ? (
+                          <>
+                            <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden /> Saving…
+                          </>
+                        ) : (
+                          "Unassign"
+                        )}
+                      </Button>
+                    </div>
+                    <div className="border-border border-t pt-2">
+                      <p className="mb-2 font-medium text-muted-foreground text-xs">Products in this neighborhood</p>
+                      {products.length > 0 ? (
+                        <div className="rounded-md border">
+                          <Table aria-label={`Products linked to ${row?.name ?? slug}`}>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead className="text-xs">Product</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {products.map((p) => (
+                                <TableRow key={p.id}>
+                                  <TableCell className="max-w-0 whitespace-normal text-xs">
+                                    <span className="line-clamp-3">{p.name || "Untitled product"}</span>
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </div>
                       ) : (
-                        <span className="shrink-0 text-muted-foreground text-xs"> ({slug})</span>
+                        <p className="text-muted-foreground text-xs">
+                          No products linked yet. Add neighborhoods to your products under{" "}
+                          <Link href="/dashboard/inventory" className="text-foreground underline underline-offset-2">
+                            Inventory
+                          </Link>
+                          .
+                        </p>
                       )}
                     </div>
-                    {row?.tagline ? <p className="truncate text-muted-foreground text-xs">{row.tagline}</p> : null}
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={mutatingSlug === slug}
-                    onClick={() => void handleUnassign(slug)}
-                    className="inline-flex items-center gap-2"
-                  >
-                    {mutatingSlug === slug ? (
-                      <>
-                        <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden /> Saving…
-                      </>
-                    ) : (
-                      "Unassign"
-                    )}
-                  </Button>
-                </li>
-              ))}
+                  </li>
+                );
+              })}
             </ul>
           )}
         </CardContent>
