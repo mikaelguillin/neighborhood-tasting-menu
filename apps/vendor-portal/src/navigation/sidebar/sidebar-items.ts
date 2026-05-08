@@ -1,7 +1,7 @@
 import {
   CalendarClock,
   Gauge,
-  ListOrdered,
+  ShoppingBasket,
   MapPin,
   Package,
   Store,
@@ -42,7 +42,7 @@ export const sidebarItems: NavGroup[] = [
       {
         title: "Orders",
         url: "/dashboard/default",
-        icon: ListOrdered,
+        icon: ShoppingBasket,
       },
       {
         title: "Neighborhoods",
