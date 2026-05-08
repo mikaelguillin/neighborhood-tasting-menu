@@ -4,9 +4,7 @@ import { createSupabaseServerClient } from "@/lib/supabase-server";
 
 export type QueueOrder = {
   id: string;
-  customerName: string;
-  neighborhood: string;
-  itemCount: number;
+  orderId: string;
   dueAt: string;
   slaMinutesRemaining: number;
   status: QueueStatus;
@@ -30,9 +28,7 @@ function computeSlaMinutesRemaining(dueAt: string) {
 
 function toQueueOrder(row: {
   id: string;
-  customer_name: string;
-  neighborhood: string;
-  item_count: number;
+  order_id: string;
   due_at: string;
   sla_minutes_remaining: number;
   status: QueueStatus;
@@ -40,9 +36,7 @@ function toQueueOrder(row: {
 }): QueueOrder {
   return {
     id: row.id,
-    customerName: row.customer_name,
-    neighborhood: row.neighborhood,
-    itemCount: row.item_count,
+    orderId: row.order_id,
     dueAt: row.due_at,
     slaMinutesRemaining: row.sla_minutes_remaining,
     status: row.status,
@@ -79,7 +73,7 @@ export async function getQueueOrders(vendorId: string) {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("vendor_queue_orders")
-    .select("id,customer_name,neighborhood,item_count,due_at,sla_minutes_remaining,status,priority")
+    .select("id,order_id,due_at,sla_minutes_remaining,status,priority")
     .eq("vendor_id", vendorId)
     .order("due_at", { ascending: true });
 
@@ -99,7 +93,7 @@ export async function updateQueueStatus(vendorId: string, id: string, status: Qu
     .update({ status, updated_at: new Date().toISOString() })
     .eq("vendor_id", vendorId)
     .eq("id", id)
-    .select("id,customer_name,neighborhood,item_count,due_at,sla_minutes_remaining,status,priority")
+    .select("id,order_id,due_at,sla_minutes_remaining,status,priority")
     .maybeSingle();
 
   if (error || !data) return null;

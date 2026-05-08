@@ -251,10 +251,7 @@ The following schema is derived from:
 #### `vendor_queue_orders`
 - `id text primary key` (supports IDs like `q_1001`)
 - `vendor_id uuid not null references vendors(id) on delete cascade`
-- `order_id text references orders(id) on delete set null`
-- `customer_name text not null`
-- `neighborhood text not null`
-- `item_count integer not null check (item_count >= 0)`
+- `order_id text not null references orders(id) on delete restrict`
 - `due_at timestamptz not null`
 - `sla_minutes_remaining integer not null`
 - `status text not null` (`new`, `confirmed`, `preparing`, `ready`, `fulfilled`)

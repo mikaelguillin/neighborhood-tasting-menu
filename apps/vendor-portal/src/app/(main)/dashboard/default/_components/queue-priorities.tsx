@@ -58,14 +58,14 @@ export function QueuePriorities({
           >
             <div className="space-y-1">
               <div className="flex flex-wrap items-center gap-2">
-                <p className="font-medium text-sm">{item.customerName}</p>
+                <p className="font-medium text-sm">{item.orderId}</p>
                 <Badge variant={statusTone(item.status)}>{item.status.replaceAll("_", " ")}</Badge>
                 <Badge variant={item.priority === "high" ? "destructive" : "outline"}>
                   {item.priority} priority
                 </Badge>
               </div>
               <p className="text-muted-foreground text-xs">
-                {item.id} - {item.neighborhood} - {item.itemCount} items
+                Queue item {item.id}
               </p>
               <p className="text-muted-foreground text-xs">
                 Due {new Date(item.dueAt).toLocaleTimeString()} ({item.slaMinutesRemaining} min SLA)

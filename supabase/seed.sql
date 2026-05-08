@@ -275,18 +275,15 @@ insert into public.vendor_queue_orders (
   id,
   vendor_id,
   order_id,
-  customer_name,
-  neighborhood,
-  item_count,
   due_at,
   sla_minutes_remaining,
   status,
   priority
 )
 values
-  ('q_1001', '33333333-3333-3333-3333-333333333333', 'ord_demo_weekly', 'A. Parker', 'Long Island City', 7, now() + interval '42 minutes', 42, 'new', 'high'),
-  ('q_1002', '33333333-3333-3333-3333-333333333333', null, 'R. Singh', 'Astoria', 5, now() + interval '88 minutes', 88, 'confirmed', 'medium'),
-  ('q_1003', '33333333-3333-3333-3333-333333333333', null, 'J. Chen', 'West Village', 8, now() + interval '27 minutes', 27, 'preparing', 'high')
+  ('q_1001', '33333333-3333-3333-3333-333333333333', 'ord_demo_weekly', now() + interval '42 minutes', 42, 'new', 'high'),
+  ('q_1002', '33333333-3333-3333-3333-333333333333', 'ord_demo_weekly', now() + interval '88 minutes', 88, 'confirmed', 'medium'),
+  ('q_1003', '33333333-3333-3333-3333-333333333333', 'ord_demo_weekly', now() + interval '27 minutes', 27, 'preparing', 'high')
 on conflict (id) do nothing;
 
 insert into public.products (id, vendor_id, name, description)
