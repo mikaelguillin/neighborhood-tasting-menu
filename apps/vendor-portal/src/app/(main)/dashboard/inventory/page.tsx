@@ -5,7 +5,7 @@ import { Loader2 } from "lucide-react";
 
 import { InventoryControls } from "./_components/inventory-controls";
 import { InventoryProductsManager } from "./_components/inventory-products-manager";
-import type { InventoryItem } from "@/lib/vendor-ops-store";
+import type { InventoryItem } from "@/lib/vendor-ops-types";
 
 export default function InventoryPage() {
   const [inventory, setInventory] = useState<InventoryItem[]>([]);

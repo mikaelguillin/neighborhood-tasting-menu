@@ -1,26 +1,6 @@
-export type QueueStatus = "new" | "confirmed" | "preparing" | "ready" | "fulfilled";
-export type QueuePriority = "high" | "medium" | "low";
+import "server-only";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
-
-export type QueueOrder = {
-  id: string;
-  orderId: string;
-  dueAt: string;
-  slaMinutesRemaining: number;
-  status: QueueStatus;
-  priority: QueuePriority;
-};
-
-export type InventoryItem = {
-  id: string;
-  productId: string;
-  name: string;
-  description: string | null;
-  stock: number;
-  lowStockThreshold: number;
-  available: boolean;
-  outOfStockReason: string | null;
-};
+import type { InventoryItem, OperableQueueStatus, QueueOrder, QueuePriority, QueueStatus } from "@/lib/vendor-ops-types";
 
 function computeSlaMinutesRemaining(dueAt: string) {
   return Math.round((new Date(dueAt).getTime() - Date.now()) / 60000);
@@ -86,8 +66,30 @@ export async function getQueueOrders(vendorId: string) {
   );
 }
 
-export async function updateQueueStatus(vendorId: string, id: string, status: QueueStatus) {
+export type UpdateQueueStatusResult =
+  | { ok: true; order: QueueOrder }
+  | { ok: false; reason: "not_found" | "cancelled" };
+
+export async function updateQueueStatus(
+  vendorId: string,
+  id: string,
+  status: OperableQueueStatus,
+): Promise<UpdateQueueStatusResult> {
   const supabase = await createSupabaseServerClient();
+  const { data: existing, error: fetchError } = await supabase
+    .from("vendor_queue_orders")
+    .select("id,order_id,due_at,sla_minutes_remaining,status,priority")
+    .eq("vendor_id", vendorId)
+    .eq("id", id)
+    .maybeSingle();
+
+  if (fetchError || !existing) {
+    return { ok: false, reason: "not_found" };
+  }
+  if (existing.status === "cancelled") {
+    return { ok: false, reason: "cancelled" };
+  }
+
   const { data, error } = await supabase
     .from("vendor_queue_orders")
     .update({ status, updated_at: new Date().toISOString() })
@@ -96,11 +98,16 @@ export async function updateQueueStatus(vendorId: string, id: string, status: Qu
     .select("id,order_id,due_at,sla_minutes_remaining,status,priority")
     .maybeSingle();
 
-  if (error || !data) return null;
-  return toQueueOrder({
-    ...data,
-    sla_minutes_remaining: computeSlaMinutesRemaining(data.due_at),
-  });
+  if (error || !data) {
+    return { ok: false, reason: "not_found" };
+  }
+  return {
+    ok: true,
+    order: toQueueOrder({
+      ...data,
+      sla_minutes_remaining: computeSlaMinutesRemaining(data.due_at),
+    }),
+  };
 }
 
 export async function getInventoryItems(vendorId: string) {

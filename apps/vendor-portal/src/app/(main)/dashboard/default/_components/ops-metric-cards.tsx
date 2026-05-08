@@ -2,7 +2,7 @@
 
 import { AlertTriangle, Clock3, ListOrdered, PackageSearch } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import type { InventoryItem, QueueOrder } from "@/lib/vendor-ops-store";
+import type { InventoryItem, QueueOrder } from "@/lib/vendor-ops-types";
 
 export function OpsMetricCards({
   queue,

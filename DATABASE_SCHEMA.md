@@ -18,6 +18,8 @@ Sources:
 - `supabase/migrations/202605041200_inventory_product_name_uuid.sql`
 - `supabase/migrations/202605051200_products_catalog.sql`
 - `supabase/migrations/202605051205_products_id_default.sql`
+- `supabase/migrations/202605090900_vendor_queue_autopopulate.sql`
+- `supabase/migrations/202605090910_vendor_queue_cancellation.sql`
 
 ### `public.health_checks`
 
@@ -91,6 +93,8 @@ Row Level Security: **enabled** — `SELECT` for all roles; `INSERT` / `DELETE` 
 ### Implemented auth and policy behavior
 
 - Trigger `public.handle_auth_user_created()` syncs `auth.users` inserts to `public.users`.
+- Trigger `on_order_inserted` on `public.orders` runs `public.handle_order_inserted()` (`SECURITY DEFINER`): after each order insert, inserts one `vendor_queue_orders` row per vendor (from `neighborhood_vendors` when `neighborhood_id` is set, or from all `vendors` with `status = 'active'` when `plan_id` is set).
+- Trigger `on_order_cancelled` on `public.orders` runs `public.handle_order_cancelled()` (`SECURITY DEFINER`): when `orders.status` transitions to `cancelled`, updates matching `vendor_queue_orders` rows to `cancelled`.
 - RLS enabled on all core flow tables above.
 - Customer policies are scoped to `auth.uid()` for `users`, `orders`, and `order_timeline_events`.
 - Vendor operational policies are scoped by membership in `vendor_users` for queue/inventory access.
@@ -254,7 +258,7 @@ The following schema is derived from:
 - `order_id text not null references orders(id) on delete restrict`
 - `due_at timestamptz not null`
 - `sla_minutes_remaining integer not null`
-- `status text not null` (`new`, `confirmed`, `preparing`, `ready`, `fulfilled`)
+- `status text not null` (`new`, `confirmed`, `preparing`, `ready`, `fulfilled`, `cancelled`)
 - `priority text not null` (`high`, `medium`, `low`)
 - `created_at timestamptz not null default now()`
 - `updated_at timestamptz not null default now()`

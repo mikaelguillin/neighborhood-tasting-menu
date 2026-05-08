@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { OpsMetricCards } from "./ops-metric-cards";
 import { QueuePriorities } from "./queue-priorities";
-import type { InventoryItem, QueueOrder } from "@/lib/vendor-ops-store";
+import type { InventoryItem, QueueOrder } from "@/lib/vendor-ops-types";
 
 export function OpsDashboard() {
   const [queue, setQueue] = useState<QueueOrder[]>([]);

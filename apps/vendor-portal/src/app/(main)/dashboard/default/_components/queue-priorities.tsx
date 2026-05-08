@@ -11,11 +11,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { QueueOrder, QueueStatus } from "@/lib/vendor-ops-store";
-
-const STATUS_OPTIONS: QueueStatus[] = ["new", "confirmed", "preparing", "ready", "fulfilled"];
+import { OPERABLE_QUEUE_STATUSES } from "@/lib/vendor-ops-types";
+import type { OperableQueueStatus, QueueOrder, QueueStatus } from "@/lib/vendor-ops-types";
 
 function statusTone(status: QueueStatus): "default" | "secondary" | "destructive" | "outline" {
+  if (status === "cancelled") return "secondary";
   if (status === "fulfilled") return "secondary";
   if (status === "ready") return "default";
   if (status === "new") return "destructive";
@@ -31,7 +31,7 @@ export function QueuePriorities({
 }) {
   const [savingId, setSavingId] = useState<string | null>(null);
 
-  async function updateStatus(id: string, status: QueueStatus) {
+  async function updateStatus(id: string, status: OperableQueueStatus) {
     setSavingId(id);
     await fetch(`/api/vendor/ops/queue/${id}/status`, {
       method: "POST",
@@ -72,25 +72,34 @@ export function QueuePriorities({
               </p>
             </div>
             <div className="mt-3 flex items-center gap-2 md:mt-0">
-              <Select value={item.status} onValueChange={(value: QueueStatus) => updateStatus(item.id, value)}>
-                <SelectTrigger className="w-36">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {STATUS_OPTIONS.map((status) => (
-                    <SelectItem key={status} value={status}>
-                      {status.replaceAll("_", " ")}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button
-                variant="outline"
-                disabled={savingId === item.id}
-                onClick={() => updateStatus(item.id, item.status)}
-              >
-                {savingId === item.id ? "Saving..." : "Sync"}
-              </Button>
+              {item.status === "cancelled" ? (
+                <p className="text-muted-foreground text-xs">Order cancelled — no status changes</p>
+              ) : (
+                <>
+                  <Select
+                    value={item.status}
+                    onValueChange={(value: OperableQueueStatus) => updateStatus(item.id, value)}
+                  >
+                    <SelectTrigger className="w-36">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {OPERABLE_QUEUE_STATUSES.map((status) => (
+                        <SelectItem key={status} value={status}>
+                          {status.replaceAll("_", " ")}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    variant="outline"
+                    disabled={savingId === item.id}
+                    onClick={() => updateStatus(item.id, item.status as OperableQueueStatus)}
+                  >
+                    {savingId === item.id ? "Saving..." : "Sync"}
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         ))}
