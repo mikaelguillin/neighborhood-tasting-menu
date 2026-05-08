@@ -11,6 +11,9 @@ export type QueueOrder = {
   slaMinutesRemaining: number;
   status: QueueStatus;
   priority: QueuePriority;
+  sourceType: "plan" | "neighborhood" | null;
+  sourceLabel: string | null;
+  sourceSlug: string | null;
 };
 
 export type InventoryItem = {

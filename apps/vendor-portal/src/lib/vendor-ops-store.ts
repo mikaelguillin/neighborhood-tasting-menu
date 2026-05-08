@@ -13,7 +13,12 @@ function toQueueOrder(row: {
   sla_minutes_remaining: number;
   status: QueueStatus;
   priority: QueuePriority;
+  source_type?: string | null;
+  source_label?: string | null;
+  source_slug?: string | null;
 }): QueueOrder {
+  const sourceType =
+    row.source_type === "plan" || row.source_type === "neighborhood" ? row.source_type : null;
   return {
     id: row.id,
     orderId: row.order_id,
@@ -21,10 +26,24 @@ function toQueueOrder(row: {
     slaMinutesRemaining: row.sla_minutes_remaining,
     status: row.status,
     priority: row.priority,
+    sourceType,
+    sourceLabel: row.source_label ?? null,
+    sourceSlug: row.source_slug ?? null,
   };
 }
 
 type ProductEmbed = { name: string; description: string | null };
+type QueueOrderRpcRow = {
+  id: string;
+  order_id: string;
+  due_at: string;
+  sla_minutes_remaining: number;
+  status: QueueStatus;
+  priority: QueuePriority;
+  source_type: string | null;
+  source_label: string | null;
+  source_slug: string | null;
+};
 
 function toInventoryItem(row: {
   id: string;
@@ -51,14 +70,12 @@ function toInventoryItem(row: {
 
 export async function getQueueOrders(vendorId: string) {
   const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase
-    .from("vendor_queue_orders")
-    .select("id,order_id,due_at,sla_minutes_remaining,status,priority")
-    .eq("vendor_id", vendorId)
-    .order("due_at", { ascending: true });
+  const { data, error } = await supabase.rpc("get_vendor_queue_orders", {
+    v_vendor_id: vendorId,
+  });
 
   if (error || !data) return [];
-  return data.map((item) =>
+  return (data as QueueOrderRpcRow[]).map((item) =>
     toQueueOrder({
       ...item,
       sla_minutes_remaining: computeSlaMinutesRemaining(item.due_at),

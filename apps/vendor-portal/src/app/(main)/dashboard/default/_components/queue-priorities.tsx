@@ -31,6 +31,11 @@ export function QueuePriorities({
 }) {
   const [savingId, setSavingId] = useState<string | null>(null);
 
+  function sourceLabel(item: QueueOrder) {
+    if (!item.sourceType || !item.sourceLabel) return null;
+    return `${item.sourceType === "plan" ? "Plan" : "Neighborhood"}: ${item.sourceLabel}`;
+  }
+
   async function updateStatus(id: string, status: OperableQueueStatus) {
     setSavingId(id);
     await fetch(`/api/vendor/ops/queue/${id}/status`, {
@@ -67,6 +72,9 @@ export function QueuePriorities({
               <p className="text-muted-foreground text-xs">
                 Queue item {item.id}
               </p>
+              {sourceLabel(item) ? (
+                <p className="text-muted-foreground text-xs">{sourceLabel(item)}</p>
+              ) : null}
               <p className="text-muted-foreground text-xs">
                 Due {new Date(item.dueAt).toLocaleTimeString()} ({item.slaMinutesRemaining} min SLA)
               </p>
