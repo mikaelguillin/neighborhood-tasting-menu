@@ -1,7 +1,7 @@
 "use client";
 
 import { Check } from "lucide-react";
-import { useCheckout, STEP_ORDER, type CheckoutStep } from "./checkout-context";
+import { useCheckout, useStepOrder, type CheckoutStep } from "./checkout-context";
 import { cn } from "@/lib/utils";
 
 const LABELS: Record<Exclude<CheckoutStep, "confirmation">, string> = {
@@ -13,13 +13,14 @@ const LABELS: Record<Exclude<CheckoutStep, "confirmation">, string> = {
 
 export function CheckoutStepper() {
   const { step, setStep } = useCheckout();
+  const stepOrder = useStepOrder();
   if (step === "confirmation") return null;
 
-  const currentIndex = STEP_ORDER.indexOf(step);
+  const currentIndex = stepOrder.indexOf(step as (typeof stepOrder)[number]);
 
   return (
     <ol className="flex w-full items-center gap-2 md:gap-3">
-      {STEP_ORDER.map((s, i) => {
+      {stepOrder.map((s, i) => {
         const state = i < currentIndex ? "done" : i === currentIndex ? "current" : "upcoming";
         const clickable = i <= currentIndex;
         return (
@@ -57,7 +58,7 @@ export function CheckoutStepper() {
                 {LABELS[s as Exclude<CheckoutStep, "confirmation">]}
               </span>
             </button>
-            {i < STEP_ORDER.length - 1 && (
+            {i < stepOrder.length - 1 && (
               <span
                 className={cn(
                   "h-px flex-1 transition-colors",

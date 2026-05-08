@@ -14,12 +14,20 @@ function centsToMoney(value: number) {
 }
 
 export function OrderSummary({ compact = false }: { compact?: boolean }) {
-  const { plan, neighborhoodSlug, mode, promoCode, setPromoCode, neighborhoods } = useCheckout();
+  const {
+    plan,
+    neighborhoodSlug,
+    mode,
+    promoCode,
+    setPromoCode,
+    neighborhoods,
+    subtotalCents,
+  } = useCheckout();
   const neighborhood = neighborhoods.find((n) => n.slug === neighborhoodSlug);
   const ship = formatFriendlyDate(getNextFriday());
   const promoForTotals = promoCode.trim() ? promoCode.trim() : null;
   const { serviceFeeCents, discountCents, totalCents } = computeOrderTotals(
-    plan.priceCents,
+    subtotalCents,
     promoForTotals,
   );
 
@@ -34,8 +42,17 @@ export function OrderSummary({ compact = false }: { compact?: boolean }) {
       <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
         Order summary
       </p>
-      <h3 className="mt-2 text-xl font-semibold tracking-tight text-brand">{plan.name}</h3>
-      <p className="mt-1 text-sm text-foreground/70">{plan.cadence}</p>
+      {mode === "onetime" && neighborhood ? (
+        <>
+          <h3 className="mt-2 text-xl font-semibold tracking-tight text-brand">{neighborhood.name}</h3>
+          <p className="mt-1 text-sm text-foreground/70">One-time box</p>
+        </>
+      ) : (
+        <>
+          <h3 className="mt-2 text-xl font-semibold tracking-tight text-brand">{plan.name}</h3>
+          <p className="mt-1 text-sm text-foreground/70">{plan.cadence}</p>
+        </>
+      )}
 
       {neighborhood && (
         <div className="mt-5 flex items-center gap-3 rounded-[10px] bg-canvas-soft p-3">
@@ -46,7 +63,7 @@ export function OrderSummary({ compact = false }: { compact?: boolean }) {
           />
           <div className="min-w-0">
             <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-              First box
+              {mode === "onetime" ? "This order" : "First box"}
             </p>
             <p className="truncate text-sm font-semibold text-foreground">{neighborhood.name}</p>
             <p className="text-xs text-foreground/60">Ships {ship}</p>
@@ -70,7 +87,7 @@ export function OrderSummary({ compact = false }: { compact?: boolean }) {
       </div>
 
       <dl className="mt-4 space-y-2 border-t border-border pt-4 text-sm">
-        <Row label="Subtotal" value={centsToMoney(plan.priceCents)} />
+        <Row label="Subtotal" value={centsToMoney(subtotalCents)} />
         <Row
           label="Delivery"
           value={<span className="text-primary">Free</span>}

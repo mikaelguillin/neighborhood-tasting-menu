@@ -8,6 +8,14 @@ import { imageSrc } from "@/lib/image-src";
 
 type Props = { params: Promise<{ slug: string }> };
 
+function centsToMoney(value: number) {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  }).format(value / 100);
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const n = await getNeighborhoodBySlug(slug);
@@ -79,7 +87,11 @@ export default async function NeighborhoodDetailPage({ params }: Props) {
                 <Link href="/plans">Subscribe — from $58/box</Link>
               </Button>
               <Button asChild size="lg" variant="outline">
-                <Link href="/plans">One-time order</Link>
+                <Link href={`/checkout?mode=onetime&neighborhood=${n.slug}`}>
+                  {n.priceCents != null
+                    ? `Order this box — ${centsToMoney(n.priceCents)}`
+                    : "Order this box"}
+                </Link>
               </Button>
             </div>
 

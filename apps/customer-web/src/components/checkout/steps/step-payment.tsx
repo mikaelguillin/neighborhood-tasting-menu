@@ -18,14 +18,14 @@ function formatExpiry(v: string) {
 }
 
 export function StepPayment() {
-  const { payment, updatePayment, address, plan, promoCode, back, completeOrder } =
+  const { payment, updatePayment, address, plan, mode, promoCode, back, completeOrder, subtotalCents } =
     useCheckout();
   const [errors, setErrors] = React.useState<Record<string, string>>({});
   const [submitting, setSubmitting] = React.useState(false);
   const [submitError, setSubmitError] = React.useState<string | null>(null);
   const [needsSignIn, setNeedsSignIn] = React.useState(false);
   const promoForTotals = promoCode.trim() ? promoCode.trim() : null;
-  const { totalCents } = computeOrderTotals(plan.priceCents, promoForTotals);
+  const { totalCents } = computeOrderTotals(subtotalCents, promoForTotals);
   const totalLabel = (totalCents / 100).toFixed(2);
 
   function validate(): boolean {
@@ -134,8 +134,17 @@ export function StepPayment() {
       </div>
 
       <p className="mt-4 text-xs leading-relaxed text-muted-foreground">
-        By placing this order you agree to our terms. Your {plan.name} subscription will renew{" "}
-        {plan.cadence.toLowerCase()} until you skip, pause, or cancel.
+        {mode === "onetime" ? (
+          <>
+            By placing this order you agree to our terms. This is a one-time purchase — no
+            subscription will be created.
+          </>
+        ) : (
+          <>
+            By placing this order you agree to our terms. Your {plan.name} subscription will renew{" "}
+            {plan.cadence.toLowerCase()} until you skip, pause, or cancel.
+          </>
+        )}
       </p>
 
       {submitError && !needsSignIn && (

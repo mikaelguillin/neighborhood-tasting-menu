@@ -26,7 +26,16 @@ export type CheckoutPayment = {
 
 export type CheckoutStep = "plan" | "address" | "delivery" | "payment" | "confirmation";
 
-export const STEP_ORDER: CheckoutStep[] = ["plan", "address", "delivery", "payment"];
+/** Steps shown before confirmation (excludes `confirmation`). */
+export type CheckoutFlowStep = Exclude<CheckoutStep, "confirmation">;
+
+/** Subscription checkout: plan picker then address → delivery → payment. */
+export const STEP_ORDER: CheckoutFlowStep[] = ["plan", "address", "delivery", "payment"];
+
+export function getStepOrder(mode: "subscription" | "onetime"): CheckoutFlowStep[] {
+  if (mode === "onetime") return ["address", "delivery", "payment"];
+  return ["plan", "address", "delivery", "payment"];
+}
 
 type State = {
   step: CheckoutStep;
@@ -47,6 +56,8 @@ export type CompleteOrderResult =
   | { ok: false; error: string; needsSignIn?: boolean };
 
 type Ctx = State & {
+  /** Subtotal for pricing UI and payment total; neighborhood box price when `mode === "onetime"`. */
+  subtotalCents: number;
   setStep: (s: CheckoutStep) => void;
   next: () => void;
   back: () => void;
@@ -108,7 +119,7 @@ export function CheckoutProvider({
   children: React.ReactNode;
 }) {
   const [state, setState] = React.useState<State>(() => ({
-    step: "plan",
+    step: initialMode === "onetime" ? "address" : "plan",
     plans,
     neighborhoods,
     plan: pickPlan(plans, initialPlanId),
@@ -143,8 +154,10 @@ export function CheckoutProvider({
   const next = React.useCallback(() => {
     setState((s) => {
       if (s.step === "payment") return s;
-      const i = STEP_ORDER.indexOf(s.step);
-      const nextStep = STEP_ORDER[Math.min(i + 1, STEP_ORDER.length - 1)];
+      const order = getStepOrder(s.mode);
+      const i = order.indexOf(s.step as CheckoutFlowStep);
+      if (i < 0) return s;
+      const nextStep = order[Math.min(i + 1, order.length - 1)];
       if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
       return { ...s, step: nextStep };
     });
@@ -152,10 +165,11 @@ export function CheckoutProvider({
 
   const back = React.useCallback(() => {
     setState((s) => {
-      const i = STEP_ORDER.indexOf(s.step);
+      const order = getStepOrder(s.mode);
+      const i = order.indexOf(s.step as CheckoutFlowStep);
       if (i <= 0) return s;
       if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
-      return { ...s, step: STEP_ORDER[i - 1] };
+      return { ...s, step: order[i - 1] };
     });
   }, []);
 
@@ -221,8 +235,15 @@ export function CheckoutProvider({
     return { ok: true };
   }, []);
 
+  const neighborhood = state.neighborhoods.find((n) => n.slug === state.neighborhoodSlug);
+  const subtotalCents =
+    state.mode === "onetime"
+      ? (neighborhood?.priceCents ?? state.plan.priceCents)
+      : state.plan.priceCents;
+
   const value: Ctx = {
     ...state,
+    subtotalCents,
     setStep,
     next,
     back,
@@ -249,4 +270,9 @@ export function useCheckout() {
   const ctx = React.useContext(CheckoutContext);
   if (!ctx) throw new Error("useCheckout must be used inside <CheckoutProvider>");
   return ctx;
+}
+
+export function useStepOrder(): CheckoutFlowStep[] {
+  const { mode } = useCheckout();
+  return getStepOrder(mode);
 }

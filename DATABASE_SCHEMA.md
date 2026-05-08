@@ -203,8 +203,9 @@ The following schema is derived from:
 - `id text primary key` (supports IDs like `ord_xxx` seen in app state)
 - `user_id uuid not null references users(id) on delete cascade`
 - `subscription_id uuid references subscriptions(id) on delete set null`
-- `plan_id text not null` (`sampler`, `weekly`, `local-hero`)
-- `plan_name text not null`
+- `plan_id text null` (`sampler`, `weekly`, `local-hero`)
+- `neighborhood_id text null` (references `neighborhoods.slug`)
+- Constraint: exactly one of (`plan_id`, `neighborhood_id`) is non-null.
 - `status text not null` (`placed`, `payment_confirmed`, `in_preparation`, `out_for_delivery`, `delivered`)
 - `subtotal_cents integer not null check (subtotal_cents >= 0)`
 - `delivery_fee_cents integer not null default 0 check (delivery_fee_cents >= 0)`

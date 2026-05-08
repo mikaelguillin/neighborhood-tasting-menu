@@ -23,7 +23,8 @@ export type OrderTimelineEvent = {
 
 export type OrderRecord = {
   id: string;
-  planId: PlanId;
+  planId: PlanId | null;
+  neighborhoodId: string | null;
   planName: string;
   status: OrderStatus;
   subtotalCents: number;
@@ -93,8 +94,8 @@ type DbTimelineRow = {
 
 type DbOrderRow = {
   id: string;
-  plan_id: PlanId;
-  plan_name: string;
+  plan_id: PlanId | null;
+  neighborhood_id: string | null;
   status: OrderStatus;
   subtotal_cents: number;
   delivery_fee_cents: number;
@@ -109,11 +110,12 @@ type DbOrderRow = {
   order_timeline_events?: DbTimelineRow[];
 };
 
-function toOrderRecord(row: DbOrderRow): OrderRecord {
+function toOrderRecord(row: DbOrderRow, planName: string): OrderRecord {
   return {
     id: row.id,
     planId: row.plan_id,
-    planName: row.plan_name,
+    neighborhoodId: row.neighborhood_id,
+    planName,
     status: row.status,
     subtotalCents: row.subtotal_cents,
     deliveryFeeCents: row.delivery_fee_cents,
@@ -145,12 +147,23 @@ async function getPlanById(planId: PlanId) {
   return data;
 }
 
+async function getNeighborhoodPriceAndName(slug: string) {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("neighborhoods")
+    .select("slug,name,price_cents")
+    .eq("slug", slug)
+    .maybeSingle();
+  if (error || !data) return null;
+  return data as { slug: string; name: string; price_cents: number | null };
+}
+
 export async function listOrders(userId: string) {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("orders")
     .select(
-      "id,plan_id,plan_name,status,subtotal_cents,delivery_fee_cents,service_fee_cents,discount_cents,total_cents,promo_code,payment_method,address,delivery_window,created_at,order_timeline_events(status,label,note,event_at)",
+      "id,plan_id,neighborhood_id,status,subtotal_cents,delivery_fee_cents,service_fee_cents,discount_cents,total_cents,promo_code,payment_method,address,delivery_window,created_at,order_timeline_events(status,label,note,event_at)",
     )
     .eq("user_id", userId)
     .order("created_at", { ascending: false })
@@ -160,7 +173,46 @@ export async function listOrders(userId: string) {
     });
 
   if (error || !data) return [];
-  return (data as DbOrderRow[]).map(toOrderRecord);
+
+  const rows = data as DbOrderRow[];
+
+  const planIds = [...new Set(rows.map((r) => r.plan_id).filter((x): x is PlanId => x != null))];
+  const neighborhoodSlugs = [
+    ...new Set(rows.map((r) => r.neighborhood_id).filter((x): x is string => x != null)),
+  ];
+
+  const planNameById = new Map<PlanId, string>();
+  if (planIds.length > 0) {
+    const { data: planRows } = await supabase.from("plans").select("id,name").in("id", planIds);
+    if (planRows) {
+      for (const p of planRows as { id: PlanId; name: string }[]) {
+        planNameById.set(p.id, p.name);
+      }
+    }
+  }
+
+  const neighborhoodNameBySlug = new Map<string, string>();
+  if (neighborhoodSlugs.length > 0) {
+    const { data: neighborhoodRows } = await supabase
+      .from("neighborhoods")
+      .select("slug,name")
+      .in("slug", neighborhoodSlugs);
+    if (neighborhoodRows) {
+      for (const n of neighborhoodRows as { slug: string; name: string }[]) {
+        neighborhoodNameBySlug.set(n.slug, n.name);
+      }
+    }
+  }
+
+  return rows.map((row) => {
+    const displayName =
+      row.neighborhood_id != null
+        ? neighborhoodNameBySlug.get(row.neighborhood_id) ?? row.neighborhood_id
+        : row.plan_id != null
+          ? planNameById.get(row.plan_id) ?? row.plan_id
+          : "Order";
+    return toOrderRecord(row, displayName);
+  });
 }
 
 export async function getOrder(id: string, userId: string) {
@@ -168,7 +220,7 @@ export async function getOrder(id: string, userId: string) {
   const { data, error } = await supabase
     .from("orders")
     .select(
-      "id,plan_id,plan_name,status,subtotal_cents,delivery_fee_cents,service_fee_cents,discount_cents,total_cents,promo_code,payment_method,address,delivery_window,created_at,order_timeline_events(status,label,note,event_at)",
+      "id,plan_id,neighborhood_id,status,subtotal_cents,delivery_fee_cents,service_fee_cents,discount_cents,total_cents,promo_code,payment_method,address,delivery_window,created_at,order_timeline_events(status,label,note,event_at)",
     )
     .eq("id", id)
     .eq("user_id", userId)
@@ -179,7 +231,23 @@ export async function getOrder(id: string, userId: string) {
     .maybeSingle();
 
   if (error || !data) return null;
-  return toOrderRecord(data as DbOrderRow);
+  const row = data as DbOrderRow;
+  const displayName = (() => {
+    if (row.neighborhood_id != null) return row.neighborhood_id;
+    if (row.plan_id != null) return row.plan_id;
+    return "Order";
+  })();
+
+  // Resolve names (best-effort) for display.
+  if (row.neighborhood_id != null) {
+    const nh = await getNeighborhoodPriceAndName(row.neighborhood_id);
+    return toOrderRecord(row, nh?.name ?? row.neighborhood_id);
+  }
+  if (row.plan_id != null) {
+    const plan = await getPlanById(row.plan_id);
+    return toOrderRecord(row, plan?.name ?? row.plan_id);
+  }
+  return toOrderRecord(row, displayName);
 }
 
 export async function createOrder(
@@ -198,7 +266,22 @@ export async function createOrder(
     throw new Error("Unknown plan");
   }
   const promoCode = input.promoCode?.trim() ? input.promoCode.trim() : null;
-  const totals = computeOrderTotals(plan.price_cents, promoCode);
+
+  let subtotalCents = plan.price_cents;
+  let planIdToInsert: PlanId | null = input.planId;
+  let neighborhoodIdToInsert: string | null = null;
+
+  if (input.checkoutMetadata?.checkoutMode === "onetime") {
+    const nh = await getNeighborhoodPriceAndName(input.checkoutMetadata.neighborhoodSlug);
+    if (!nh) {
+      throw new Error("Unknown neighborhood");
+    }
+    subtotalCents = nh.price_cents ?? plan.price_cents;
+    neighborhoodIdToInsert = nh.slug;
+    planIdToInsert = null;
+  }
+
+  const totals = computeOrderTotals(subtotalCents, promoCode);
   const id = `ord_${Date.now().toString(36)}`;
   const supabase = await createSupabaseServerClient();
   const createdAt = new Date().toISOString();
@@ -208,10 +291,10 @@ export async function createOrder(
   const baseInsert = {
     id,
     user_id: userId,
-    plan_id: input.planId,
-    plan_name: plan.name,
+    plan_id: planIdToInsert,
+    neighborhood_id: neighborhoodIdToInsert,
     status: "placed" as const,
-    subtotal_cents: plan.price_cents,
+    subtotal_cents: subtotalCents,
     delivery_fee_cents: totals.deliveryFeeCents,
     service_fee_cents: totals.serviceFeeCents,
     discount_cents: totals.discountCents,
