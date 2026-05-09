@@ -34,7 +34,7 @@ function CheckoutStepsInner() {
 
   return (
     <>
-      <div className="mx-auto w-full max-w-[1100px] px-4 pt-12 md:px-6 lg:px-10 lg:pt-16">
+      <div className="mx-auto w-full max-w-[1200px] px-4 pt-12 md:px-6 lg:px-10 lg:pt-16">
         <div className="max-w-3xl">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">Checkout</p>
           <h1 className="mt-3 text-4xl font-semibold tracking-tight text-brand md:text-5xl">
