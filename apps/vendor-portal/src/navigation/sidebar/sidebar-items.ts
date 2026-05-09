@@ -1,5 +1,4 @@
 import {
-  CalendarClock,
   Gauge,
   ShoppingBasket,
   MapPin,
@@ -58,11 +57,6 @@ export const sidebarItems: NavGroup[] = [
         title: "Profile",
         url: "/dashboard/crm",
         icon: Store,
-      },
-      {
-        title: "Availability",
-        url: "/dashboard/finance",
-        icon: CalendarClock,
       },
       {
         title: "Analytics",
