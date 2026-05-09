@@ -28,6 +28,14 @@ export const THEME_PRESET_OPTIONS = [
     },
   },
   {
+    label: "Modern Minimal",
+    value: "modern-minimal",
+    primary: {
+      light: "oklch(0.62 0.19 259.81)",
+      dark: "oklch(0.62 0.19 259.81)",
+    },
+  },
+  {
     label: "Soft Pop",
     value: "soft-pop",
     primary: {
