@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Loader2, Pencil, Plus, Trash2, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2, Pencil, Plus, Trash2, X } from "lucide-react";
 
 import {
   AlertDialog,
@@ -52,6 +52,19 @@ type NeighborhoodsPayload = {
 
 type EditFields = { name: string; description: string; priceInput: string };
 
+const BOROUGH_BADGE_STYLES: Record<string, string> = {
+  Manhattan: "border-amber-200 bg-amber-100 text-amber-900",
+  Brooklyn: "border-blue-200 bg-blue-100 text-blue-900",
+  Queens: "border-violet-200 bg-violet-100 text-violet-900",
+  Bronx: "border-rose-200 bg-rose-100 text-rose-900",
+  "Staten Island": "border-emerald-200 bg-emerald-100 text-emerald-900",
+};
+
+function boroughBadgeClassName(borough?: string | null) {
+  if (!borough) return "border-slate-200 bg-slate-100 text-slate-900";
+  return BOROUGH_BADGE_STYLES[borough] ?? "border-slate-200 bg-slate-100 text-slate-900";
+}
+
 function NeighborhoodPicker({
   catalogBySlug,
   sortedAssignedForPicker,
@@ -86,11 +99,15 @@ function NeighborhoodPicker({
         {selectedSlugs.map((slug) => {
           const row = catalogBySlug.get(slug);
           return (
-            <Badge key={slug} variant="secondary" className="gap-1 pr-1 font-normal">
+            <Badge
+              key={slug}
+              variant="outline"
+              className={`gap-1 border pr-1 font-normal ${boroughBadgeClassName(row?.borough)}`}
+            >
               {row?.name ?? slug}
               <button
                 type="button"
-                className="rounded p-0.5 hover:bg-muted-foreground/20"
+                className="rounded p-0.5 hover:bg-black/10"
                 disabled={disabled}
                 aria-label={`Remove ${slug}`}
                 onClick={() => onRemove(slug)}
@@ -147,6 +164,8 @@ export function InventoryProductsManager({ onProductsChanged }: { onProductsChan
   const [editingId, setEditingId] = useState<string | null>(null);
   const [mutatingId, setMutatingId] = useState<string | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
 
   const catalogBySlug = useMemo(() => new Map(catalog.map((n) => [n.slug, n])), [catalog]);
 
@@ -354,6 +373,16 @@ export function InventoryProductsManager({ onProductsChanged }: { onProductsChan
   const editingBusy = editingId !== null && mutatingId === editingId;
   const deleteTarget = deleteConfirmId ? items.find((i) => i.id === deleteConfirmId) : undefined;
   const deleteBusy = deleteConfirmId !== null && mutatingId === deleteConfirmId;
+  const pageCount = Math.max(1, Math.ceil(items.length / pageSize));
+  const safePage = Math.min(page, pageCount);
+  const startIndex = (safePage - 1) * pageSize;
+  const paginatedItems = items.slice(startIndex, startIndex + pageSize);
+
+  useEffect(() => {
+    if (page !== safePage) {
+      setPage(safePage);
+    }
+  }, [page, safePage]);
 
   if (loading) {
     return (
@@ -391,7 +420,8 @@ export function InventoryProductsManager({ onProductsChanged }: { onProductsChan
               No products yet. Use &quot;Add product&quot; to create your first reference.
             </p>
           ) : (
-            <Table>
+            <>
+              <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
@@ -402,7 +432,7 @@ export function InventoryProductsManager({ onProductsChanged }: { onProductsChan
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {items.map((item) => {
+                {paginatedItems.map((item) => {
                   const nhCount = item.neighborhoodSlugs.length;
                   const preview = item.neighborhoodSlugs.slice(0, 2);
                   return (
@@ -428,7 +458,11 @@ export function InventoryProductsManager({ onProductsChanged }: { onProductsChan
                             {preview.map((slug) => {
                               const row = catalogBySlug.get(slug);
                               return (
-                                <Badge key={slug} variant="outline" className="font-normal text-xs">
+                                <Badge
+                                  key={slug}
+                                  variant="outline"
+                                  className={`font-normal text-xs ${boroughBadgeClassName(row?.borough)}`}
+                                >
                                   {row?.name ?? slug}
                                 </Badge>
                               );
@@ -473,7 +507,36 @@ export function InventoryProductsManager({ onProductsChanged }: { onProductsChan
                   );
                 })}
               </TableBody>
-            </Table>
+              </Table>
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t pt-3">
+              <p className="text-muted-foreground text-xs">
+                Showing {startIndex + 1}-{Math.min(startIndex + pageSize, items.length)} of {items.length}
+              </p>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={safePage <= 1}
+                  onClick={() => setPage((current) => Math.max(1, current - 1))}
+                >
+                  <ChevronLeft className="size-4" aria-hidden />
+                  Previous
+                </Button>
+                <span className="text-muted-foreground text-xs">
+                  Page {safePage} of {pageCount}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={safePage >= pageCount}
+                  onClick={() => setPage((current) => Math.min(pageCount, current + 1))}
+                >
+                  Next
+                  <ChevronRight className="size-4" aria-hidden />
+                </Button>
+              </div>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

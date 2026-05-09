@@ -27,6 +27,18 @@ type NeighborhoodsPayload = {
   productsByNeighborhood: Record<string, NeighborhoodProductSummary[]>;
 };
 
+const BOROUGH_BADGE_STYLES: Record<string, string> = {
+  Manhattan: "border-amber-200 bg-amber-100 text-amber-900",
+  Brooklyn: "border-blue-200 bg-blue-100 text-blue-900",
+  Queens: "border-violet-200 bg-violet-100 text-violet-900",
+  Bronx: "border-rose-200 bg-rose-100 text-rose-900",
+  "Staten Island": "border-emerald-200 bg-emerald-100 text-emerald-900",
+};
+
+function boroughBadgeClassName(borough: string) {
+  return BOROUGH_BADGE_STYLES[borough] ?? "border-slate-200 bg-slate-100 text-slate-900";
+}
+
 export function NeighborhoodsManager() {
   const [catalog, setCatalog] = useState<NeighborhoodPickerRow[]>([]);
   const [assignedSlugs, setAssignedSlugs] = useState<string[]>([]);
@@ -177,7 +189,7 @@ export function NeighborhoodsManager() {
                         <div className="flex flex-wrap items-center gap-2">
                           <span className="truncate font-medium">{row?.name ?? slug}</span>
                           {row?.borough ? (
-                            <Badge className="shrink-0" variant="secondary">
+                            <Badge className={`shrink-0 ${boroughBadgeClassName(row.borough)}`} variant="outline">
                               {row.borough}
                             </Badge>
                           ) : (
@@ -292,7 +304,7 @@ export function NeighborhoodsManager() {
                   <div className="min-w-0 space-y-0.5">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="truncate font-medium">{n.name}</span>
-                      <Badge className="shrink-0" variant="outline">
+                      <Badge className={`shrink-0 ${boroughBadgeClassName(n.borough)}`} variant="outline">
                         {n.borough}
                       </Badge>
                     </div>

@@ -14,12 +14,17 @@ import {
 import { OPERABLE_QUEUE_STATUSES } from "@/lib/vendor-ops-types";
 import type { OperableQueueStatus, QueueOrder, QueueStatus } from "@/lib/vendor-ops-types";
 
-function statusTone(status: QueueStatus): "default" | "secondary" | "destructive" | "outline" {
-  if (status === "cancelled") return "secondary";
-  if (status === "fulfilled") return "secondary";
-  if (status === "ready") return "default";
-  if (status === "new") return "destructive";
-  return "outline";
+const ORDER_STATUS_BADGE_STYLES: Record<QueueStatus, string> = {
+  new: "border-rose-200 bg-rose-100 text-rose-900",
+  confirmed: "border-blue-200 bg-blue-100 text-blue-900",
+  preparing: "border-amber-200 bg-amber-100 text-amber-900",
+  ready: "border-emerald-200 bg-emerald-100 text-emerald-900",
+  fulfilled: "border-slate-300 bg-slate-100 text-slate-800",
+  cancelled: "border-zinc-300 bg-zinc-100 text-zinc-700",
+};
+
+function statusBadgeClassName(status: QueueStatus): string {
+  return ORDER_STATUS_BADGE_STYLES[status];
 }
 
 export function QueuePriorities({
@@ -64,7 +69,9 @@ export function QueuePriorities({
             <div className="space-y-1">
               <div className="flex flex-wrap items-center gap-2">
                 <p className="font-medium text-sm">{item.orderId}</p>
-                <Badge variant={statusTone(item.status)}>{item.status.replaceAll("_", " ")}</Badge>
+                <Badge variant="outline" className={statusBadgeClassName(item.status)}>
+                  {item.status.replaceAll("_", " ")}
+                </Badge>
                 <Badge variant={item.priority === "high" ? "destructive" : "outline"}>
                   {item.priority} priority
                 </Badge>
@@ -100,7 +107,7 @@ export function QueuePriorities({
                     </SelectContent>
                   </Select>
                   <Button
-                    variant="outline"
+                    variant="default"
                     disabled={savingId === item.id}
                     onClick={() => updateStatus(item.id, item.status as OperableQueueStatus)}
                   >

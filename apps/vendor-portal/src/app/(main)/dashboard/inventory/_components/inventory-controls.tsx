@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,11 +18,23 @@ export function InventoryControls({
 }) {
   const [selected, setSelected] = useState<string[]>([]);
   const [saving, setSaving] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
 
   const allSelected = useMemo(
     () => items.length > 0 && selected.length === items.length,
     [items.length, selected.length],
   );
+  const pageCount = Math.max(1, Math.ceil(items.length / pageSize));
+  const safePage = Math.min(page, pageCount);
+  const startIndex = (safePage - 1) * pageSize;
+  const paginatedItems = items.slice(startIndex, startIndex + pageSize);
+
+  useEffect(() => {
+    if (page !== safePage) {
+      setPage(safePage);
+    }
+  }, [page, safePage]);
 
   function toggleSelected(id: string) {
     setSelected((current) => (current.includes(id) ? current.filter((value) => value !== id) : [...current, id]));
@@ -84,7 +97,7 @@ export function InventoryControls({
         </div>
 
         <div className="space-y-2">
-          {items.map((item) => {
+          {paginatedItems.map((item) => {
             const isLowStock = item.stock <= item.lowStockThreshold;
             return (
               <div
@@ -132,6 +145,36 @@ export function InventoryControls({
             );
           })}
         </div>
+        {items.length > 0 ? (
+          <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-2">
+            <p className="text-muted-foreground text-xs">
+              Showing {startIndex + 1}-{Math.min(startIndex + pageSize, items.length)} of {items.length}
+            </p>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={safePage <= 1}
+                onClick={() => setPage((current) => Math.max(1, current - 1))}
+              >
+                <ChevronLeft className="size-4" aria-hidden />
+                Previous
+              </Button>
+              <span className="text-muted-foreground text-xs">
+                Page {safePage} of {pageCount}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={safePage >= pageCount}
+                onClick={() => setPage((current) => Math.min(pageCount, current + 1))}
+              >
+                Next
+                <ChevronRight className="size-4" aria-hidden />
+              </Button>
+            </div>
+          </div>
+        ) : null}
       </CardContent>
     </Card>
   );
