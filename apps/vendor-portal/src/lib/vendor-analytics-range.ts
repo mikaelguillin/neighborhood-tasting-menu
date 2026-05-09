@@ -57,6 +57,13 @@ export type FulfillmentChartPoint = {
   fulfilled_count: number;
 };
 
+export type CustomerMixChartPoint = {
+  dayKey: string;
+  label: string;
+  new_customers: number;
+  returning_customers: number;
+};
+
 export function buildSalesChartSeries(
   from: Date,
   to: Date,
@@ -90,6 +97,25 @@ export function buildFulfillmentChartSeries(
       dayKey,
       label: formatChartLabelUtc(day),
       fulfilled_count: row?.fulfilled_count ?? 0,
+    };
+  });
+}
+
+export function buildCustomerMixChartSeries(
+  from: Date,
+  to: Date,
+  rows: Array<{ day: string; new_customers: number; returning_customers: number }>,
+): CustomerMixChartPoint[] {
+  const map = new Map(rows.map((r) => [r.day, r] as const));
+  const days = eachUtcCalendarDayInclusive(from, to);
+  return days.map((day) => {
+    const dayKey = ymdUtcFromDate(day);
+    const row = map.get(dayKey);
+    return {
+      dayKey,
+      label: formatChartLabelUtc(day),
+      new_customers: row?.new_customers ?? 0,
+      returning_customers: row?.returning_customers ?? 0,
     };
   });
 }

@@ -10,10 +10,10 @@ import { Bar, BarChart, CartesianGrid, Line, LineChart, XAxis, YAxis } from "rec
 import { DateRangePicker } from "@/components/date-range-picker";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { type ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import { ChartLegend, ChartLegendContent, type ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatCurrency } from "@/lib/utils";
-import type { FulfillmentChartPoint, SalesChartPoint } from "@/lib/vendor-analytics-range";
+import type { CustomerMixChartPoint, FulfillmentChartPoint, SalesChartPoint } from "@/lib/vendor-analytics-range";
 import { localCalendarDateFromYmd } from "@/lib/vendor-analytics-range";
 
 type PeriodSnapshot = {
@@ -29,19 +29,27 @@ type PreviousSnapshot = {
   gmv_cents: number;
 };
 
+type NeighborhoodSalesPoint = {
+  neighborhood: string;
+  order_count: number;
+  gmv_cents: number;
+};
+
 export type VendorAnalyticsDashboardProps = {
   period: PeriodSnapshot;
   previous: PreviousSnapshot;
   salesSeries: SalesChartPoint[];
   fulfillmentSeries: FulfillmentChartPoint[];
+  neighborhoodSales: NeighborhoodSalesPoint[];
+  customerMixSeries: CustomerMixChartPoint[];
   rangeFromYmd: string;
   rangeToYmd: string;
   loadError: string | null;
 };
 
 const salesChartConfig = {
-  order_count: {
-    label: "Orders",
+  gmv_cents: {
+    label: "Revenue",
     color: "var(--chart-1)",
   },
 } satisfies ChartConfig;
@@ -50,6 +58,24 @@ const fulfillmentChartConfig = {
   fulfilled_count: {
     label: "Fulfilled",
     color: "var(--chart-2)",
+  },
+} satisfies ChartConfig;
+
+const neighborhoodSalesChartConfig = {
+  gmv_cents: {
+    label: "Revenue",
+    color: "var(--chart-3)",
+  },
+} satisfies ChartConfig;
+
+const customerMixChartConfig = {
+  new_customers: {
+    label: "New customers",
+    color: "var(--chart-4)",
+  },
+  returning_customers: {
+    label: "Returning customers",
+    color: "var(--chart-5)",
   },
 } satisfies ChartConfig;
 
@@ -67,6 +93,8 @@ export function VendorAnalyticsDashboard({
   previous,
   salesSeries,
   fulfillmentSeries,
+  neighborhoodSales,
+  customerMixSeries,
   rangeFromYmd,
   rangeToYmd,
   loadError,
@@ -152,20 +180,26 @@ export function VendorAnalyticsDashboard({
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Card className="shadow-xs">
           <CardHeader>
-            <CardTitle>Orders per day</CardTitle>
-            <CardDescription>Distinct non-cancelled orders by customer order date (UTC)</CardDescription>
+            <CardTitle>Revenue over time</CardTitle>
+            <CardDescription>Daily GMV from non-cancelled orders by customer order date (UTC)</CardDescription>
           </CardHeader>
           <CardContent className="pt-2">
             <ChartContainer config={salesChartConfig} className="h-64 w-full">
               <LineChart data={salesSeries} margin={{ left: 4, right: 8, top: 8, bottom: 0 }}>
                 <CartesianGrid vertical={false} stroke="var(--border)" strokeOpacity={0.25} />
                 <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={8} interval="preserveStartEnd" />
-                <YAxis allowDecimals={false} tickLine={false} axisLine={false} tickMargin={8} width={36} />
+                <YAxis
+                  tickFormatter={(value: number) => `$${Math.round(value / 100)}`}
+                  tickLine={false}
+                  axisLine={false}
+                  tickMargin={8}
+                  width={44}
+                />
                 <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
                 <Line
-                  dataKey="order_count"
+                  dataKey="gmv_cents"
                   type="monotone"
-                  stroke="var(--color-order_count)"
+                  stroke="var(--color-gmv_cents)"
                   strokeWidth={2}
                   dot={false}
                 />
@@ -190,6 +224,58 @@ export function VendorAnalyticsDashboard({
                   dataKey="fulfilled_count"
                   fill="var(--color-fulfilled_count)"
                   fillOpacity={0.35}
+                  radius={[4, 4, 0, 0]}
+                />
+              </BarChart>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <Card className="shadow-xs">
+          <CardHeader>
+            <CardTitle>Sales by neighborhood</CardTitle>
+            <CardDescription>Revenue by neighborhood for non-cancelled orders in range</CardDescription>
+          </CardHeader>
+          <CardContent className="pt-2">
+            <ChartContainer config={neighborhoodSalesChartConfig} className="h-64 w-full">
+              <BarChart data={neighborhoodSales} layout="vertical" margin={{ left: 8, right: 8, top: 8, bottom: 0 }}>
+                <CartesianGrid horizontal={false} stroke="var(--border)" strokeOpacity={0.25} />
+                <XAxis type="number" tickFormatter={(value: number) => `$${Math.round(value / 100)}`} />
+                <YAxis type="category" dataKey="neighborhood" tickLine={false} axisLine={false} width={110} />
+                <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
+                <Bar dataKey="gmv_cents" fill="var(--color-gmv_cents)" fillOpacity={0.45} radius={[0, 4, 4, 0]} />
+              </BarChart>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-xs">
+          <CardHeader>
+            <CardTitle>New vs returning customers</CardTitle>
+            <CardDescription>Distinct customers per day, split by first-time vs repeat</CardDescription>
+          </CardHeader>
+          <CardContent className="pt-2">
+            <ChartContainer config={customerMixChartConfig} className="h-64 w-full">
+              <BarChart data={customerMixSeries} margin={{ left: 4, right: 8, top: 8, bottom: 0 }}>
+                <CartesianGrid vertical={false} stroke="var(--border)" strokeOpacity={0.25} />
+                <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={8} interval="preserveStartEnd" />
+                <YAxis allowDecimals={false} tickLine={false} axisLine={false} tickMargin={8} width={36} />
+                <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
+                <ChartLegend content={<ChartLegendContent />} />
+                <Bar
+                  dataKey="new_customers"
+                  stackId="customers"
+                  fill="var(--color-new_customers)"
+                  fillOpacity={0.6}
+                  radius={[4, 4, 0, 0]}
+                />
+                <Bar
+                  dataKey="returning_customers"
+                  stackId="customers"
+                  fill="var(--color-returning_customers)"
+                  fillOpacity={0.45}
                   radius={[4, 4, 0, 0]}
                 />
               </BarChart>

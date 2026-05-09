@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { requireVendorMembership } from "@/lib/supabase-server";
 import { fetchVendorAnalyticsDashboard } from "@/lib/vendor-analytics";
 import {
+  buildCustomerMixChartSeries,
   buildFulfillmentChartSeries,
   buildSalesChartSeries,
   resolveAnalyticsRangeFromSearchParams,
@@ -34,13 +35,16 @@ export default async function Page({
       open_workload_count: 0,
     },
     previous: { orders_count: 0, gmv_cents: 0 },
-    sales_by_day: [] as const,
-    fulfillments_by_day: [] as const,
+    sales_by_day: [],
+    fulfillments_by_day: [],
+    sales_by_neighborhood: [],
+    customers_by_day: [],
   };
 
   const d = data ?? fallback;
   const salesSeries = buildSalesChartSeries(range.from, range.to, [...d.sales_by_day]);
   const fulfillmentSeries = buildFulfillmentChartSeries(range.from, range.to, [...d.fulfillments_by_day]);
+  const customerMixSeries = buildCustomerMixChartSeries(range.from, range.to, [...d.customers_by_day]);
 
   return (
     <VendorAnalyticsDashboard
@@ -48,6 +52,8 @@ export default async function Page({
       previous={d.previous}
       salesSeries={salesSeries}
       fulfillmentSeries={fulfillmentSeries}
+      neighborhoodSales={d.sales_by_neighborhood}
+      customerMixSeries={customerMixSeries}
       rangeFromYmd={ymdUtcFromDate(range.from)}
       rangeToYmd={ymdUtcFromDate(range.to)}
       loadError={error}

@@ -11,6 +11,18 @@ export type VendorAnalyticsDayFulfillments = {
   fulfilled_count: number;
 };
 
+export type VendorAnalyticsNeighborhoodSales = {
+  neighborhood: string;
+  order_count: number;
+  gmv_cents: number;
+};
+
+export type VendorAnalyticsDayCustomers = {
+  day: string;
+  new_customers: number;
+  returning_customers: number;
+};
+
 export type VendorAnalyticsDashboard = {
   period: {
     orders_count: number;
@@ -25,6 +37,8 @@ export type VendorAnalyticsDashboard = {
   };
   sales_by_day: VendorAnalyticsDaySales[];
   fulfillments_by_day: VendorAnalyticsDayFulfillments[];
+  sales_by_neighborhood: VendorAnalyticsNeighborhoodSales[];
+  customers_by_day: VendorAnalyticsDayCustomers[];
 };
 
 function asNonNegativeInt(v: unknown, fallback = 0): number {
@@ -56,6 +70,30 @@ function parseFulfillmentDay(row: unknown): VendorAnalyticsDayFulfillments | nul
   };
 }
 
+function parseNeighborhoodSales(row: unknown): VendorAnalyticsNeighborhoodSales | null {
+  if (!row || typeof row !== "object") return null;
+  const o = row as Record<string, unknown>;
+  const neighborhood = o.neighborhood;
+  if (typeof neighborhood !== "string" || neighborhood.trim().length === 0) return null;
+  return {
+    neighborhood: neighborhood.trim(),
+    order_count: asNonNegativeInt(o.order_count),
+    gmv_cents: asNonNegativeInt(o.gmv_cents),
+  };
+}
+
+function parseCustomersDay(row: unknown): VendorAnalyticsDayCustomers | null {
+  if (!row || typeof row !== "object") return null;
+  const o = row as Record<string, unknown>;
+  const day = o.day;
+  if (typeof day !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(day)) return null;
+  return {
+    day,
+    new_customers: asNonNegativeInt(o.new_customers),
+    returning_customers: asNonNegativeInt(o.returning_customers),
+  };
+}
+
 export function parseVendorAnalyticsDashboard(raw: unknown): VendorAnalyticsDashboard | null {
   if (!raw || typeof raw !== "object") return null;
   const root = raw as Record<string, unknown>;
@@ -69,11 +107,21 @@ export function parseVendorAnalyticsDashboard(raw: unknown): VendorAnalyticsDash
 
   const salesRaw = root.sales_by_day;
   const fulfillRaw = root.fulfillments_by_day;
+  const neighborhoodSalesRaw = root.sales_by_neighborhood;
+  const customersRaw = root.customers_by_day;
   const sales_by_day = Array.isArray(salesRaw)
     ? salesRaw.map(parseSalesDay).filter((x): x is VendorAnalyticsDaySales => x !== null)
     : [];
   const fulfillments_by_day = Array.isArray(fulfillRaw)
     ? fulfillRaw.map(parseFulfillmentDay).filter((x): x is VendorAnalyticsDayFulfillments => x !== null)
+    : [];
+  const sales_by_neighborhood = Array.isArray(neighborhoodSalesRaw)
+    ? neighborhoodSalesRaw
+        .map(parseNeighborhoodSales)
+        .filter((x): x is VendorAnalyticsNeighborhoodSales => x !== null)
+    : [];
+  const customers_by_day = Array.isArray(customersRaw)
+    ? customersRaw.map(parseCustomersDay).filter((x): x is VendorAnalyticsDayCustomers => x !== null)
     : [];
 
   return {
@@ -90,6 +138,8 @@ export function parseVendorAnalyticsDashboard(raw: unknown): VendorAnalyticsDash
     },
     sales_by_day,
     fulfillments_by_day,
+    sales_by_neighborhood,
+    customers_by_day,
   };
 }
 

@@ -1,0 +1,2 @@
+-- Placeholder migration retained for local history consistency.
+-- Superseded by 202605101245_vendor_analytics_dashboard_charts_fix.sql.
