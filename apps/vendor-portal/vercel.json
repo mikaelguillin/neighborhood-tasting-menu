@@ -1,0 +1,4 @@
+{
+  "installCommand": "cd ../.. && corepack enable && corepack prepare pnpm@9.15.9 --activate && corepack pnpm install --frozen-lockfile=false",
+  "buildCommand": "cd ../.. && corepack pnpm --filter vendor-portal build"
+}
