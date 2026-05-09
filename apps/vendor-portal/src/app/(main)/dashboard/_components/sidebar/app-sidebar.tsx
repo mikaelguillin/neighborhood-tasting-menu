@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 
-import { Command } from "lucide-react";
 import { useShallow } from "zustand/react/shallow";
 
 import {
@@ -46,11 +45,10 @@ export function AppSidebar({ user, vendorName, ...props }: AppSidebarProps) {
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
               <Link prefetch={false} href="/dashboard/default">
-                <Command />
                 <div className="grid min-w-0 gap-0.5">
-                  <span className="font-semibold text-base leading-none">{APP_CONFIG.name}</span>
+                  <span className="font-semibold text-lg leading-none">{APP_CONFIG.name}</span>
                   {vendorName ? (
-                    <span className="max-w-[180px] truncate text-muted-foreground text-xs leading-none">
+                    <span className="max-w-[200px] truncate leading-none">
                       {vendorName}
                     </span>
                   ) : null}
