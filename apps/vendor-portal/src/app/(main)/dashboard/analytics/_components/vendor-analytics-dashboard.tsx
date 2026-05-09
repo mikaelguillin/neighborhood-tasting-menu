@@ -245,7 +245,7 @@ export function VendorAnalyticsDashboard({
                 <XAxis type="number" tickFormatter={(value: number) => `$${Math.round(value / 100)}`} />
                 <YAxis type="category" dataKey="neighborhood" tickLine={false} axisLine={false} width={110} />
                 <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
-                <Bar dataKey="gmv_cents" fill="var(--color-gmv_cents)" fillOpacity={0.45} radius={[0, 4, 4, 0]} />
+                <Bar dataKey="gmv_cents" fill="var(--color-gmv_cents)" fillOpacity={0.6} radius={[0, 4, 4, 0]} />
               </BarChart>
             </ChartContainer>
           </CardContent>
@@ -268,14 +268,14 @@ export function VendorAnalyticsDashboard({
                   dataKey="new_customers"
                   stackId="customers"
                   fill="var(--color-new_customers)"
-                  fillOpacity={0.6}
+                  fillOpacity={0.8}
                   radius={[4, 4, 0, 0]}
                 />
                 <Bar
                   dataKey="returning_customers"
                   stackId="customers"
                   fill="var(--color-returning_customers)"
-                  fillOpacity={0.45}
+                  fillOpacity={0.8}
                   radius={[4, 4, 0, 0]}
                 />
               </BarChart>
