@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "packageManager": "pnpm@11.0.9",
+  "engines": {
+    "node": "22.x"
+  },
   "scripts": {
     "dev:customer": "pnpm --filter customer-web dev",
     "dev:vendor": "pnpm --filter vendor-portal dev",
