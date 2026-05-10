@@ -32,7 +32,26 @@ import type { OperableQueueStatus, QueueOrder, QueueStatus } from "@/lib/vendor-
 
 const PAGE_SIZE = 10;
 
+const FILTER_ALL = "__all__" as const;
+
 type DueAtSort = "asc" | "desc";
+
+function sourceKey(item: QueueOrder): string | null {
+  const raw = item.sourceSlug ?? item.sourceLabel;
+  return raw && raw.length > 0 ? raw : null;
+}
+
+function passesNeighborhoodFilter(item: QueueOrder, filter: string): boolean {
+  if (filter === FILTER_ALL) return true;
+  if (item.sourceType !== "neighborhood") return false;
+  return sourceKey(item) === filter;
+}
+
+function passesPlanFilter(item: QueueOrder, filter: string): boolean {
+  if (filter === FILTER_ALL) return true;
+  if (item.sourceType !== "plan") return false;
+  return sourceKey(item) === filter;
+}
 
 function compareQueueByDueAt(a: QueueOrder, b: QueueOrder, direction: DueAtSort): number {
   const tA = new Date(a.dueAt).getTime();
@@ -71,11 +90,60 @@ export function QueuePriorities({
   const [savingId, setSavingId] = useState<string | null>(null);
   const [pageIndex, setPageIndex] = useState(0);
   const [dueAtSort, setDueAtSort] = useState<DueAtSort>("asc");
+  const [neighborhoodFilter, setNeighborhoodFilter] = useState<string>(FILTER_ALL);
+  const [planFilter, setPlanFilter] = useState<string>(FILTER_ALL);
+
+  const neighborhoodOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const item of queue) {
+      if (item.sourceType !== "neighborhood") continue;
+      const key = sourceKey(item);
+      if (!key) continue;
+      const label = item.sourceLabel ?? key;
+      map.set(key, label);
+    }
+    return [...map.entries()].sort((a, b) => a[1].localeCompare(b[1]));
+  }, [queue]);
+
+  const planOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const item of queue) {
+      if (item.sourceType !== "plan") continue;
+      const key = sourceKey(item);
+      if (!key) continue;
+      const label = item.sourceLabel ?? key;
+      map.set(key, label);
+    }
+    return [...map.entries()].sort((a, b) => a[1].localeCompare(b[1]));
+  }, [queue]);
+
+  useEffect(() => {
+    const valid = new Set(neighborhoodOptions.map(([k]) => k));
+    if (neighborhoodFilter !== FILTER_ALL && !valid.has(neighborhoodFilter)) {
+      setNeighborhoodFilter(FILTER_ALL);
+    }
+  }, [neighborhoodFilter, neighborhoodOptions]);
+
+  useEffect(() => {
+    const valid = new Set(planOptions.map(([k]) => k));
+    if (planFilter !== FILTER_ALL && !valid.has(planFilter)) {
+      setPlanFilter(FILTER_ALL);
+    }
+  }, [planFilter, planOptions]);
+
+  const filteredQueue = useMemo(
+    () =>
+      queue.filter(
+        (item) =>
+          passesNeighborhoodFilter(item, neighborhoodFilter) && passesPlanFilter(item, planFilter),
+      ),
+    [queue, neighborhoodFilter, planFilter],
+  );
 
   const sortedQueue = useMemo(() => {
-    if (queue.length === 0) return [];
-    return [...queue].sort((a, b) => compareQueueByDueAt(a, b, dueAtSort));
-  }, [queue, dueAtSort]);
+    if (filteredQueue.length === 0) return [];
+    return [...filteredQueue].sort((a, b) => compareQueueByDueAt(a, b, dueAtSort));
+  }, [filteredQueue, dueAtSort]);
 
   const pageCount = sortedQueue.length === 0 ? 0 : Math.ceil(sortedQueue.length / PAGE_SIZE);
   const maxPageIndex = Math.max(0, pageCount - 1);
@@ -90,7 +158,7 @@ export function QueuePriorities({
 
   useEffect(() => {
     setPageIndex(0);
-  }, [dueAtSort]);
+  }, [dueAtSort, neighborhoodFilter, planFilter]);
 
   const pageNumbers = useMemo(() => {
     if (pageCount <= 3) {
@@ -131,17 +199,67 @@ export function QueuePriorities({
         </CardDescription>
         {queue.length > 0 ? (
           <CardAction>
-            <div className="flex flex-col items-end gap-1">
-              <span className="text-muted-foreground text-xs">Due time</span>
-              <Select value={dueAtSort} onValueChange={(value: DueAtSort) => setDueAtSort(value)}>
-                <SelectTrigger className="h-8 w-[11.5rem]" aria-label="Sort queue by due time">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent align="end">
-                  <SelectItem value="asc">Earliest due first</SelectItem>
-                  <SelectItem value="desc">Latest due first</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="flex max-w-full flex-col gap-3 @[480px]/card-header:flex-row @[480px]/card-header:flex-wrap @[480px]/card-header:justify-end">
+              {neighborhoodOptions.length > 0 ? (
+                <div className="flex flex-col items-end gap-1">
+                  <span className="text-muted-foreground text-xs">Neighborhood</span>
+                  <Select
+                    value={neighborhoodFilter}
+                    onValueChange={setNeighborhoodFilter}
+                  >
+                    <SelectTrigger
+                      className="h-8 w-[11.5rem] max-w-[min(100vw-3rem,11.5rem)]"
+                      aria-label="Filter queue by neighborhood"
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent align="end">
+                      <SelectItem value={FILTER_ALL}>All neighborhoods</SelectItem>
+                      {neighborhoodOptions.map(([value, label]) => (
+                        <SelectItem key={value} value={value}>
+                          {label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ) : null}
+              {planOptions.length > 0 ? (
+                <div className="flex flex-col items-end gap-1">
+                  <span className="text-muted-foreground text-xs">Plan</span>
+                  <Select value={planFilter} onValueChange={setPlanFilter}>
+                    <SelectTrigger
+                      className="h-8 w-[11.5rem] max-w-[min(100vw-3rem,11.5rem)]"
+                      aria-label="Filter queue by plan"
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent align="end">
+                      <SelectItem value={FILTER_ALL}>All plans</SelectItem>
+                      {planOptions.map(([value, label]) => (
+                        <SelectItem key={value} value={value}>
+                          {label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ) : null}
+              <div className="flex flex-col items-end gap-1">
+                <span className="text-muted-foreground text-xs">Due time</span>
+                <Select value={dueAtSort} onValueChange={(value: DueAtSort) => setDueAtSort(value)}>
+                  <SelectTrigger
+                    className="h-8 w-[11.5rem] max-w-[min(100vw-3rem,11.5rem)]"
+                    aria-label="Sort queue by due time"
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent align="end">
+                    <SelectItem value="asc">Earliest due first</SelectItem>
+                    <SelectItem value="desc">Latest due first</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </CardAction>
         ) : null}
@@ -149,6 +267,11 @@ export function QueuePriorities({
       <CardContent className="space-y-3">
         {queue.length === 0 ? (
           <p className="text-muted-foreground text-sm">No orders in the queue.</p>
+        ) : sortedQueue.length === 0 ? (
+          <p className="text-muted-foreground text-sm">
+            No orders match the selected filters. Try choosing &quot;All neighborhoods&quot; or
+            &quot;All plans&quot;.
+          </p>
         ) : (
           <>
             {pageItems.map((item) => (
@@ -166,7 +289,6 @@ export function QueuePriorities({
                       {item.priority} priority
                     </Badge>
                   </div>
-                  <p className="text-muted-foreground text-xs">Queue item {item.id}</p>
                   {sourceLabel(item) ? (
                     <p className="text-muted-foreground text-xs">{sourceLabel(item)}</p>
                   ) : null}
