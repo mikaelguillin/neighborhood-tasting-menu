@@ -53,11 +53,11 @@ export const sidebarItems: NavGroup[] = [
         url: "/dashboard/inventory",
         icon: Package,
       },
-      {
-        title: "Profile",
-        url: "/dashboard/crm",
-        icon: Store,
-      },
+      // {
+      //   title: "Profile",
+      //   url: "/dashboard/crm",
+      //   icon: Store,
+      // },
       {
         title: "Analytics",
         url: "/dashboard/analytics",
@@ -66,15 +66,15 @@ export const sidebarItems: NavGroup[] = [
       // Menu Management: /dashboard/productivity (stub)
     ],
   },
-  {
-    id: 2,
-    label: "Team Access",
-    items: [
-      {
-        title: "Team Members",
-        url: "/dashboard/coming-soon",
-        icon: Users
-      }
-    ],
-  },
+  // {
+  //   id: 2,
+  //   label: "Team Access",
+  //   items: [
+  //     {
+  //       title: "Team Members",
+  //       url: "/dashboard/coming-soon",
+  //       icon: Users
+  //     }
+  //   ],
+  // },
 ];
