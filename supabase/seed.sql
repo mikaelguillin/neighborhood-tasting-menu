@@ -130,8 +130,8 @@ values
     '00000000-0000-0000-0000-000000000000',
     'authenticated',
     'authenticated',
-    'vendor.northside@demo.local',
-    crypt('password123', gen_salt('bf')),
+    'vendor1@demo.local',
+    extensions.crypt('password123'::text, extensions.gen_salt('bf'::text)),
     '',
     '',
     '',
@@ -151,8 +151,8 @@ values
     '00000000-0000-0000-0000-000000000000',
     'authenticated',
     'authenticated',
-    'vendor.downtown@demo.local',
-    crypt('password123', gen_salt('bf')),
+    'vendor2@demo.local',
+    extensions.crypt('password123'::text, extensions.gen_salt('bf'::text)),
     '',
     '',
     '',
@@ -187,8 +187,8 @@ values
   (
     '77777777-7777-4777-8777-777777777771',
     '55555555-5555-5555-5555-555555555555',
-    'vendor.northside@demo.local',
-    '{"sub":"55555555-5555-5555-5555-555555555555","email":"vendor.northside@demo.local","email_verified":true,"phone_verified":false}'::jsonb,
+    'vendor1@demo.local',
+    '{"sub":"55555555-5555-5555-5555-555555555555","email":"vendor1@demo.local","email_verified":true,"phone_verified":false}'::jsonb,
     'email',
     now(),
     now(),
@@ -197,8 +197,8 @@ values
   (
     '77777777-7777-4777-8777-777777777772',
     '66666666-6666-6666-6666-666666666666',
-    'vendor.downtown@demo.local',
-    '{"sub":"66666666-6666-6666-6666-666666666666","email":"vendor.downtown@demo.local","email_verified":true,"phone_verified":false}'::jsonb,
+    'vendor2@demo.local',
+    '{"sub":"66666666-6666-6666-6666-666666666666","email":"vendor2@demo.local","email_verified":true,"phone_verified":false}'::jsonb,
     'email',
     now(),
     now(),
@@ -214,14 +214,14 @@ insert into public.users (id, email, full_name, phone, default_address)
 values
   (
     '55555555-5555-5555-5555-555555555555',
-    'vendor.northside@demo.local',
+    'vendor1@demo.local',
     'Noah Ortiz',
     '555-020-0001',
     '125 Greenpoint Ave, Brooklyn, NY'
   ),
   (
     '66666666-6666-6666-6666-666666666666',
-    'vendor.downtown@demo.local',
+    'vendor2@demo.local',
     'Maya Brooks',
     '555-020-0002',
     '78 Bleecker St, New York, NY'
@@ -395,13 +395,12 @@ with customer_seed as (
   select
     gs as idx,
     ('00000000-0000-0000-0000-' || lpad(gs::text, 12, '0'))::uuid as user_id,
-    ('customer' || lpad(gs::text, 2, '0') || '@demo.local') as email,
-    (array[
-      'Alex Rivera', 'Jordan Lee', 'Sam Patel', 'Casey Nguyen', 'Taylor Kim',
-      'Morgan Diaz', 'Riley Brown', 'Avery Clark', 'Jamie Chen', 'Parker Jones',
-      'Drew Wright', 'Quinn Hall', 'Kendall Green', 'Reese Adams', 'Skyler Scott',
-      'Rowan Baker', 'Charlie Young', 'Sawyer Allen', 'Emerson King', 'Finley Hill'
-    ])[gs] as full_name,
+    fn.full_name,
+    case gs
+      when 1 then 'customer1@demo.local'
+      when 2 then 'customer2@demo.local'
+      else lower(regexp_replace(trim(fn.full_name), '[[:space:]]+', '.', 'g')) || '@demo.local'
+    end as email,
     ('555-010-' || lpad(gs::text, 4, '0')) as phone,
     (array[
       'Astoria', 'Bushwick', 'Chinatown', 'Harlem', 'Long Island City',
@@ -416,6 +415,14 @@ with customer_seed as (
       'lower-east-side', 'park-slope-pantry', 'upper-west-side-brunch', 'west-village', 'williamsburg-provisions'
     ])[gs] as home_neighborhood_slug
   from generate_series(1, 20) as gs
+  cross join lateral (
+    select (array[
+      'Alex Rivera', 'Jordan Lee', 'Sam Patel', 'Casey Nguyen', 'Taylor Kim',
+      'Morgan Diaz', 'Riley Brown', 'Avery Clark', 'Jamie Chen', 'Parker Jones',
+      'Drew Wright', 'Quinn Hall', 'Kendall Green', 'Reese Adams', 'Skyler Scott',
+      'Rowan Baker', 'Charlie Young', 'Sawyer Allen', 'Emerson King', 'Finley Hill'
+    ])[gs] as full_name
+  ) fn
 )
 insert into auth.users (
   id,
@@ -444,7 +451,7 @@ select
   'authenticated',
   'authenticated',
   cs.email,
-  crypt('password123', gen_salt('bf')),
+  extensions.crypt('password123'::text, extensions.gen_salt('bf'::text)),
   '',
   '',
   '',
@@ -469,8 +476,20 @@ with customer_seed as (
   select
     gs as idx,
     ('00000000-0000-0000-0000-' || lpad(gs::text, 12, '0'))::uuid as user_id,
-    ('customer' || lpad(gs::text, 2, '0') || '@demo.local') as email
+    case gs
+      when 1 then 'customer1@demo.local'
+      when 2 then 'customer2@demo.local'
+      else lower(regexp_replace(trim(fn.full_name), '[[:space:]]+', '.', 'g')) || '@demo.local'
+    end as email
   from generate_series(1, 20) as gs
+  cross join lateral (
+    select (array[
+      'Alex Rivera', 'Jordan Lee', 'Sam Patel', 'Casey Nguyen', 'Taylor Kim',
+      'Morgan Diaz', 'Riley Brown', 'Avery Clark', 'Jamie Chen', 'Parker Jones',
+      'Drew Wright', 'Quinn Hall', 'Kendall Green', 'Reese Adams', 'Skyler Scott',
+      'Rowan Baker', 'Charlie Young', 'Sawyer Allen', 'Emerson King', 'Finley Hill'
+    ])[gs] as full_name
+  ) fn
 )
 insert into auth.identities (
   id,
@@ -507,16 +526,23 @@ with customer_seed as (
   select
     gs as idx,
     ('00000000-0000-0000-0000-' || lpad(gs::text, 12, '0'))::uuid as user_id,
-    ('customer' || lpad(gs::text, 2, '0') || '@demo.local') as email,
-    (array[
+    fn.full_name,
+    case gs
+      when 1 then 'customer1@demo.local'
+      when 2 then 'customer2@demo.local'
+      else lower(regexp_replace(trim(fn.full_name), '[[:space:]]+', '.', 'g')) || '@demo.local'
+    end as email,
+    ('555-010-' || lpad(gs::text, 4, '0')) as phone,
+    format('%s Example St, Apt %s, New York, NY', 100 + gs, gs) as default_address
+  from generate_series(1, 20) as gs
+  cross join lateral (
+    select (array[
       'Alex Rivera', 'Jordan Lee', 'Sam Patel', 'Casey Nguyen', 'Taylor Kim',
       'Morgan Diaz', 'Riley Brown', 'Avery Clark', 'Jamie Chen', 'Parker Jones',
       'Drew Wright', 'Quinn Hall', 'Kendall Green', 'Reese Adams', 'Skyler Scott',
       'Rowan Baker', 'Charlie Young', 'Sawyer Allen', 'Emerson King', 'Finley Hill'
-    ])[gs] as full_name,
-    ('555-010-' || lpad(gs::text, 4, '0')) as phone,
-    format('%s Example St, Apt %s, New York, NY', 100 + gs, gs) as default_address
-  from generate_series(1, 20) as gs
+    ])[gs] as full_name
+  ) fn
 )
 insert into public.users (id, email, full_name, phone, default_address)
 select
