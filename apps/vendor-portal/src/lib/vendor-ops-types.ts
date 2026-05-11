@@ -7,6 +7,7 @@ export type QueuePriority = "high" | "medium" | "low";
 export type QueueOrder = {
   id: string;
   orderId: string;
+  createdAt: string;
   dueAt: string;
   slaMinutesRemaining: number;
   status: QueueStatus;

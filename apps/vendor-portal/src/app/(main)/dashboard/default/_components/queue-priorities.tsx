@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState, type MouseEvent as ReactMouseEvent } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,21 +13,20 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
-  Pagination,
-  PaginationContent,
-  PaginationEllipsis,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination";
-import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { OPERABLE_QUEUE_STATUSES } from "@/lib/vendor-ops-types";
 import type { OperableQueueStatus, QueueOrder, QueueStatus } from "@/lib/vendor-ops-types";
 
@@ -61,10 +61,6 @@ function compareQueueByDueAt(a: QueueOrder, b: QueueOrder, direction: DueAtSort)
     return direction === "asc" ? delta : -delta;
   }
   return direction === "asc" ? a.id.localeCompare(b.id) : b.id.localeCompare(a.id);
-}
-
-function preventPaginationNavigation(event: ReactMouseEvent<HTMLAnchorElement>) {
-  event.preventDefault();
 }
 
 const ORDER_STATUS_BADGE_STYLES: Record<QueueStatus, string> = {
@@ -160,19 +156,8 @@ export function QueuePriorities({
     setPageIndex(0);
   }, [dueAtSort, neighborhoodFilter, planFilter]);
 
-  const pageNumbers = useMemo(() => {
-    if (pageCount <= 3) {
-      return Array.from({ length: pageCount }, (_, index) => index + 1);
-    }
-    if (currentPage <= 2) return [1, 2, 3];
-    if (currentPage >= pageCount - 1) return [pageCount - 2, pageCount - 1, pageCount];
-
-    return [currentPage - 1, currentPage, currentPage + 1];
-  }, [currentPage, pageCount]);
-
   const canPreviousPage = safePageIndex > 0;
   const canNextPage = safePageIndex < maxPageIndex;
-  const rangeEndExclusive = Math.min(pageStart + pageItems.length, sortedQueue.length);
 
   function sourceLabel(item: QueueOrder) {
     if (!item.sourceType || !item.sourceLabel) return null;
@@ -274,118 +259,129 @@ export function QueuePriorities({
           </p>
         ) : (
           <>
-            {pageItems.map((item) => (
-              <div
-                key={item.id}
-                className="rounded-lg border p-3 md:flex md:items-center md:justify-between"
-              >
-                <div className="space-y-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className="font-medium text-sm">{item.orderId}</p>
-                    <Badge variant="outline" className={statusBadgeClassName(item.status)}>
-                      {item.status.replaceAll("_", " ")}
-                    </Badge>
-                    <Badge variant={item.priority === "high" ? "destructive" : "outline"}>
-                      {item.priority} priority
-                    </Badge>
-                  </div>
-                  {sourceLabel(item) ? (
-                    <p className="text-muted-foreground text-xs">{sourceLabel(item)}</p>
-                  ) : null}
-                  <p className="text-muted-foreground text-xs">
-                    Due {new Date(item.dueAt).toLocaleTimeString()} ({item.slaMinutesRemaining} min SLA)
-                  </p>
-                </div>
-                <div className="mt-3 flex items-center gap-2 md:mt-0">
-                  {item.status === "cancelled" ? (
-                    <p className="text-muted-foreground text-xs">
-                      Order cancelled — no status changes
-                    </p>
-                  ) : (
-                    <>
-                      <Select
-                        value={item.status}
-                        onValueChange={(value: OperableQueueStatus) => updateStatus(item.id, value)}
-                      >
-                        <SelectTrigger className="w-36">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {OPERABLE_QUEUE_STATUSES.map((status) => (
-                            <SelectItem key={status} value={status}>
-                              {status.replaceAll("_", " ")}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <Button
-                        variant="default"
-                        disabled={savingId === item.id}
-                        onClick={() => updateStatus(item.id, item.status as OperableQueueStatus)}
-                      >
-                        {savingId === item.id ? "Saving..." : "Sync"}
-                      </Button>
-                    </>
-                  )}
-                </div>
-              </div>
-            ))}
-            <div className="flex flex-col gap-4 border-t pt-4 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-muted-foreground text-sm">
-                {pageItems.length > 0
-                  ? `Viewing ${pageStart + 1}–${rangeEndExclusive} of ${sortedQueue.length.toLocaleString()} orders`
-                  : null}
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Order</TableHead>
+                  <TableHead className="hidden whitespace-nowrap sm:table-cell">Created at</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="hidden sm:table-cell">Priority</TableHead>
+                  <TableHead className="hidden min-w-[10rem] md:table-cell">Source</TableHead>
+                  <TableHead className="whitespace-nowrap">Due</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {pageItems.map((item) => (
+                  <TableRow key={item.id}>
+                    <TableCell className="max-w-[12rem] font-medium">
+                      <span className="line-clamp-2">{item.orderId}</span>
+                    </TableCell>
+                    <TableCell className="hidden text-muted-foreground whitespace-nowrap text-xs sm:table-cell">
+                      {new Date(item.createdAt).toLocaleString([], {
+                        month: "short",
+                        day: "numeric",
+                        hour: "numeric",
+                        minute: "2-digit",
+                      })}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className={statusBadgeClassName(item.status)}>
+                        {item.status.replaceAll("_", " ")}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="hidden sm:table-cell">
+                      <Badge variant={item.priority === "high" ? "destructive" : "outline"}>
+                        {item.priority}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="hidden max-w-[14rem] md:table-cell">
+                      {sourceLabel(item) ? (
+                        <span className="text-muted-foreground line-clamp-2 text-xs">
+                          {sourceLabel(item)}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground text-xs">—</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground whitespace-nowrap text-xs">
+                      {new Date(item.dueAt).toLocaleTimeString([], {
+                        hour: "numeric",
+                        minute: "2-digit",
+                      })}{" "}
+                      <span className="text-muted-foreground/80">({item.slaMinutesRemaining}m)</span>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {item.status === "cancelled" ? (
+                        <span className="text-muted-foreground text-xs">Cancelled</span>
+                      ) : (
+                        <div className="flex flex-wrap items-center justify-end gap-2">
+                          <Select
+                            value={item.status}
+                            onValueChange={(value: OperableQueueStatus) =>
+                              updateStatus(item.id, value)
+                            }
+                          >
+                            <SelectTrigger className="h-8 w-[8.5rem]">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent align="end">
+                              {OPERABLE_QUEUE_STATUSES.map((status) => (
+                                <SelectItem key={status} value={status}>
+                                  {status.replaceAll("_", " ")}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="default"
+                            className="h-8"
+                            disabled={savingId === item.id}
+                            onClick={() =>
+                              updateStatus(item.id, item.status as OperableQueueStatus)
+                            }
+                          >
+                            {savingId === item.id ? "Saving…" : "Sync"}
+                          </Button>
+                        </div>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t pt-3">
+              <p className="text-muted-foreground text-xs">
+                Showing {pageStart + 1}-
+                {Math.min(pageStart + PAGE_SIZE, sortedQueue.length)} of {sortedQueue.length}
               </p>
-              {pageCount > 1 ? (
-                <Pagination className="mx-0 w-full justify-start sm:w-auto sm:justify-end">
-                  <PaginationContent className="gap-1.5">
-                    <PaginationItem>
-                      <PaginationPrevious
-                        href="#"
-                        className={!canPreviousPage ? "pointer-events-none opacity-50" : undefined}
-                        onClick={(event) => {
-                          preventPaginationNavigation(event);
-                          if (canPreviousPage) setPageIndex((p) => p - 1);
-                        }}
-                      />
-                    </PaginationItem>
-                    {pageNumbers[0] > 1 ? (
-                      <PaginationItem>
-                        <PaginationEllipsis />
-                      </PaginationItem>
-                    ) : null}
-                    {pageNumbers.map((pageNumber) => (
-                      <PaginationItem key={`page-${pageNumber}`}>
-                        <PaginationLink
-                          href="#"
-                          isActive={safePageIndex === pageNumber - 1}
-                          onClick={(event) => {
-                            preventPaginationNavigation(event);
-                            setPageIndex(pageNumber - 1);
-                          }}
-                        >
-                          {pageNumber}
-                        </PaginationLink>
-                      </PaginationItem>
-                    ))}
-                    {pageNumbers[pageNumbers.length - 1] < pageCount ? (
-                      <PaginationItem>
-                        <PaginationEllipsis />
-                      </PaginationItem>
-                    ) : null}
-                    <PaginationItem>
-                      <PaginationNext
-                        href="#"
-                        className={!canNextPage ? "pointer-events-none opacity-50" : undefined}
-                        onClick={(event) => {
-                          preventPaginationNavigation(event);
-                          if (canNextPage) setPageIndex((p) => p + 1);
-                        }}
-                      />
-                    </PaginationItem>
-                  </PaginationContent>
-                </Pagination>
-              ) : null}
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={!canPreviousPage}
+                  onClick={() => setPageIndex((p) => Math.max(0, p - 1))}
+                >
+                  <ChevronLeft className="size-4" aria-hidden />
+                  Previous
+                </Button>
+                <span className="text-muted-foreground text-xs">
+                  Page {currentPage} of {pageCount}
+                </span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={!canNextPage}
+                  onClick={() => setPageIndex((p) => Math.min(maxPageIndex, p + 1))}
+                >
+                  Next
+                  <ChevronRight className="size-4" aria-hidden />
+                </Button>
+              </div>
             </div>
           </>
         )}

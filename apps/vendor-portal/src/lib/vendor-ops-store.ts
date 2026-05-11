@@ -9,6 +9,7 @@ function computeSlaMinutesRemaining(dueAt: string) {
 function toQueueOrder(row: {
   id: string;
   order_id: string;
+  created_at: string;
   due_at: string;
   sla_minutes_remaining: number;
   status: QueueStatus;
@@ -22,6 +23,7 @@ function toQueueOrder(row: {
   return {
     id: row.id,
     orderId: row.order_id,
+    createdAt: row.created_at,
     dueAt: row.due_at,
     slaMinutesRemaining: row.sla_minutes_remaining,
     status: row.status,
@@ -43,6 +45,7 @@ type QueueOrderRpcRow = {
   source_type: string | null;
   source_label: string | null;
   source_slug: string | null;
+  created_at: string;
 };
 
 function toInventoryItem(row: {
@@ -95,7 +98,7 @@ export async function updateQueueStatus(
   const supabase = await createSupabaseServerClient();
   const { data: existing, error: fetchError } = await supabase
     .from("vendor_queue_orders")
-    .select("id,order_id,due_at,sla_minutes_remaining,status,priority")
+    .select("id,order_id,created_at,due_at,sla_minutes_remaining,status,priority")
     .eq("vendor_id", vendorId)
     .eq("id", id)
     .maybeSingle();
@@ -112,7 +115,7 @@ export async function updateQueueStatus(
     .update({ status, updated_at: new Date().toISOString() })
     .eq("vendor_id", vendorId)
     .eq("id", id)
-    .select("id,order_id,due_at,sla_minutes_remaining,status,priority")
+    .select("id,order_id,created_at,due_at,sla_minutes_remaining,status,priority")
     .maybeSingle();
 
   if (error || !data) {
