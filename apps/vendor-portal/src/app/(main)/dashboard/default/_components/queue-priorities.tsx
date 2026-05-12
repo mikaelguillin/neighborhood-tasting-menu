@@ -7,6 +7,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatQueueDueRelative } from "@/lib/format-queue-due";
@@ -59,8 +60,15 @@ function statusBadgeClassName(status: QueueStatus): string {
   return ORDER_STATUS_BADGE_STYLES[status];
 }
 
+function sourceTypeDisplay(sourceType: QueueOrder["sourceType"]): string {
+  if (sourceType === "plan") return "Plan";
+  if (sourceType === "neighborhood") return "Neighborhood";
+  return "—";
+}
+
 export function QueuePriorities({ queue, onQueueChange }: { queue: QueueOrder[]; onQueueChange: () => Promise<void> }) {
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<QueueOrder | null>(null);
   const [pageIndex, setPageIndex] = useState(0);
   const [dueAtSort, setDueAtSort] = useState<DueAtSort>("asc");
   const [neighborhoodFilter, setNeighborhoodFilter] = useState<string>(FILTER_ALL);
@@ -133,11 +141,6 @@ export function QueuePriorities({ queue, onQueueChange }: { queue: QueueOrder[];
   const canPreviousPage = safePageIndex > 0;
   const canNextPage = safePageIndex < maxPageIndex;
 
-  function sourceLabel(item: QueueOrder) {
-    if (!item.sourceType || !item.sourceLabel) return null;
-    return `${item.sourceType === "plan" ? "Plan" : "Neighborhood"}: ${item.sourceLabel}`;
-  }
-
   async function updateStatus(id: string, status: OperableQueueStatus) {
     setSavingId(id);
     await fetch(`/api/vendor/ops/queue/${id}/status`, {
@@ -149,8 +152,82 @@ export function QueuePriorities({ queue, onQueueChange }: { queue: QueueOrder[];
     setSavingId(null);
   }
 
+  const detail = selectedOrder;
+  const detailDueRel =
+    detail && detail.status !== "fulfilled" && detail.status !== "cancelled"
+      ? formatQueueDueRelative(detail.dueAt, new Date())
+      : null;
+
   return (
     <Card>
+      <Dialog open={detail !== null} onOpenChange={(open) => !open && setSelectedOrder(null)}>
+        <DialogContent className="sm:max-w-lg">
+          {detail ? (
+            <>
+              <DialogHeader>
+                <DialogTitle>Order details</DialogTitle>
+              </DialogHeader>
+              <dl className="grid gap-3 text-sm">
+                <div className="grid gap-0.5">
+                  <dt className="text-muted-foreground">Order ID</dt>
+                  <dd>{detail.orderId}</dd>
+                </div>
+                <div className="grid gap-0.5">
+                  <dt className="text-muted-foreground">Created</dt>
+                  <dd>
+                    {new Date(detail.createdAt).toLocaleString([], {
+                      dateStyle: "medium",
+                      timeStyle: "short",
+                    })}
+                  </dd>
+                </div>
+                <div className="grid gap-0.5">
+                  <dt className="text-muted-foreground">Due</dt>
+                  <dd>
+                    <span className="block">
+                      {new Date(detail.dueAt).toLocaleString([], {
+                        dateStyle: "medium",
+                        timeStyle: "short",
+                      })}
+                    </span>
+                    {detailDueRel ? (
+                      <span
+                        className={
+                          detailDueRel.overdue ? "text-destructive text-xs" : "text-muted-foreground text-xs"
+                        }
+                      >
+                        {detailDueRel.label}
+                      </span>
+                    ) : null}
+                  </dd>
+                </div>
+                <div className="grid gap-0.5">
+                  <dt className="text-muted-foreground">Status</dt>
+                  <dd>
+                    <Badge variant="outline" className={statusBadgeClassName(detail.status)}>
+                      {detail.status.replaceAll("_", " ")}
+                    </Badge>
+                  </dd>
+                </div>
+                <div className="grid gap-0.5">
+                  <dt className="text-muted-foreground">Priority</dt>
+                  <dd>
+                    <Badge variant={detail.priority === "high" ? "destructive" : "outline"}>{detail.priority}</Badge>
+                  </dd>
+                </div>
+                <div className="grid gap-0.5">
+                  <dt className="text-muted-foreground">SLA (minutes remaining)</dt>
+                  <dd>{detail.slaMinutesRemaining}</dd>
+                </div>
+                <div className="grid gap-0.5">
+                  <dt className="text-muted-foreground">Ordered Plan/Product</dt>
+                  <dd className="wrap-break-word">{detail.sourceLabel ?? "—"}</dd>
+                </div>
+              </dl>
+            </>
+          ) : null}
+        </DialogContent>
+      </Dialog>
       <CardHeader>
         <CardTitle>Live queue priorities</CardTitle>
         <CardDescription>
@@ -236,7 +313,6 @@ export function QueuePriorities({ queue, onQueueChange }: { queue: QueueOrder[];
                   <TableHead className="hidden whitespace-nowrap sm:table-cell">Created at</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="hidden sm:table-cell">Priority</TableHead>
-                  <TableHead className="hidden min-w-[10rem] md:table-cell">Source</TableHead>
                   <TableHead className="whitespace-nowrap">Due</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -249,8 +325,16 @@ export function QueuePriorities({ queue, onQueueChange }: { queue: QueueOrder[];
                       : formatQueueDueRelative(item.dueAt, new Date());
                   return (
                     <TableRow key={item.id}>
-                      <TableCell className="max-w-[12rem] font-medium">
-                        <span className="line-clamp-2">{item.orderId}</span>
+                      <TableCell className="max-w-[12rem]">
+                        <Button
+                          type="button"
+                          variant="link"
+                          className="h-auto min-w-0 max-w-full justify-start whitespace-normal p-0 font-medium line-clamp-2 text-left"
+                          onClick={() => setSelectedOrder(item)}
+                          aria-label={`View details for order ${item.orderId}`}
+                        >
+                          {item.orderId}
+                        </Button>
                       </TableCell>
                       <TableCell className="hidden text-muted-foreground whitespace-nowrap text-xs sm:table-cell">
                         {new Date(item.createdAt).toLocaleString([], {
@@ -267,13 +351,6 @@ export function QueuePriorities({ queue, onQueueChange }: { queue: QueueOrder[];
                       </TableCell>
                       <TableCell className="hidden sm:table-cell">
                         <Badge variant={item.priority === "high" ? "destructive" : "outline"}>{item.priority}</Badge>
-                      </TableCell>
-                      <TableCell className="hidden max-w-[14rem] md:table-cell">
-                        {sourceLabel(item) ? (
-                          <span className="text-muted-foreground line-clamp-2 text-xs">{sourceLabel(item)}</span>
-                        ) : (
-                          <span className="text-muted-foreground text-xs">—</span>
-                        )}
                       </TableCell>
                       <TableCell className="whitespace-nowrap text-xs">
                         {dueRel === null ? (
