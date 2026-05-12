@@ -3,14 +3,29 @@
 import { useRouter } from "next/navigation";
 
 import { format } from "date-fns";
-import { Info } from "lucide-react";
+import { Info, TrendingDown, TrendingUp } from "lucide-react";
 import type { DateRange } from "react-day-picker";
 import { Bar, BarChart, CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
 
 import { DateRangePicker } from "@/components/date-range-picker";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ChartLegend, ChartLegendContent, type ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  type ChartConfig,
+  ChartContainer,
+  ChartLegend,
+  ChartLegendContent,
+  ChartTooltip,
+  ChartTooltipContent,
+} from "@/components/ui/chart";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatCurrency } from "@/lib/utils";
 import type { CustomerMixChartPoint, FulfillmentChartPoint, SalesChartPoint } from "@/lib/vendor-analytics-range";
@@ -88,6 +103,16 @@ function formatPctDelta(current: number, previous: number): string | null {
   return `${rounded >= 0 ? "+" : ""}${rounded}%`;
 }
 
+function kpiTrendHeadline(delta: string): { down: boolean; text: string } {
+  if (delta === "New") {
+    return { down: false, text: "New vs prior baseline" };
+  }
+  if (delta.startsWith("-")) {
+    return { down: true, text: "Trending down vs prior range" };
+  }
+  return { down: false, text: "Trending up vs prior range" };
+}
+
 export function VendorAnalyticsDashboard({
   period,
   previous,
@@ -117,7 +142,7 @@ export function VendorAnalyticsDashboard({
   const gmvDelta = formatPctDelta(period.gmv_cents, previous.gmv_cents);
 
   return (
-    <div className="flex flex-col gap-4 md:gap-6">
+    <div className="@container/main flex flex-col gap-4 md:gap-6">
       <section className="space-y-1">
         <h1 className="font-semibold text-2xl tracking-tight">Analytics</h1>
         <p className="text-muted-foreground text-sm">
@@ -140,7 +165,7 @@ export function VendorAnalyticsDashboard({
       </div>
 
       <TooltipProvider>
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
+        <div className="grid @3xl/main:grid-cols-3 @6xl/main:grid-cols-6 @xl/main:grid-cols-2 grid-cols-1 gap-4 *:data-[slot=card]:bg-linear-to-t *:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card *:data-[slot=card]:shadow-xs dark:*:data-[slot=card]:bg-card">
           <KpiCard
             label="Orders"
             value={String(period.orders_count)}
@@ -196,13 +221,7 @@ export function VendorAnalyticsDashboard({
                   width={44}
                 />
                 <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
-                <Line
-                  dataKey="gmv_cents"
-                  type="monotone"
-                  stroke="var(--color-gmv_cents)"
-                  strokeWidth={2}
-                  dot={false}
-                />
+                <Line dataKey="gmv_cents" type="monotone" stroke="var(--color-gmv_cents)" strokeWidth={2} dot={false} />
               </LineChart>
             </ChartContainer>
           </CardContent>
@@ -300,17 +319,20 @@ function KpiCard({
   footnote: string;
   infoTooltip?: string;
 }) {
+  const trend = delta ? kpiTrendHeadline(delta) : null;
+  const TrendIcon = trend?.down ? TrendingDown : TrendingUp;
+
   return (
-    <Card className="shadow-xs">
-      <CardHeader className="space-y-1 pb-2">
-        <div className="flex items-center gap-1.5">
-          <CardDescription className="font-medium text-xs">{label}</CardDescription>
+    <Card className="@container/card">
+      <CardHeader>
+        <div className="flex min-w-0 items-center gap-1.5">
+          <CardDescription>{label}</CardDescription>
           {infoTooltip ? (
             <Tooltip>
               <TooltipTrigger asChild>
                 <button
                   type="button"
-                  className="text-muted-foreground hover:text-foreground"
+                  className="shrink-0 text-muted-foreground hover:text-foreground"
                   aria-label={`About ${label}`}
                 >
                   <Info className="size-3.5" />
@@ -320,16 +342,24 @@ function KpiCard({
             </Tooltip>
           ) : null}
         </div>
-        <div className="font-semibold text-xl tabular-nums tracking-tight">{value}</div>
+        <CardTitle className="font-semibold @[250px]/card:text-3xl text-2xl tabular-nums">{value}</CardTitle>
         {delta ? (
-          <Badge variant="secondary" className="w-fit tabular-nums">
-            vs prior {delta}
-          </Badge>
+          <CardAction>
+            <Badge variant="outline" className="tabular-nums">
+              <TrendIcon />
+              {delta}
+            </Badge>
+          </CardAction>
         ) : null}
       </CardHeader>
-      <CardContent className="pt-0">
-        <p className="text-[11px] text-muted-foreground leading-snug">{footnote}</p>
-      </CardContent>
+      <CardFooter className="flex-col items-start gap-1.5 text-sm">
+        {trend ? (
+          <div className="line-clamp-1 flex gap-2 font-medium">
+            {trend.text} <TrendIcon className="size-4" />
+          </div>
+        ) : null}
+        <div className="text-muted-foreground">{footnote}</div>
+      </CardFooter>
     </Card>
   );
 }
