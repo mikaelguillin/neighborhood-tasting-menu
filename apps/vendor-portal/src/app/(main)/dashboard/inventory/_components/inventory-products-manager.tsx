@@ -165,6 +165,7 @@ export function InventoryProductsManager({ onProductsChanged }: { onProductsChan
   const [mutatingId, setMutatingId] = useState<string | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [page, setPage] = useState(1);
+  const [nameSearch, setNameSearch] = useState("");
   const pageSize = 10;
 
   const catalogBySlug = useMemo(() => new Map(catalog.map((n) => [n.slug, n])), [catalog]);
@@ -176,6 +177,12 @@ export function InventoryProductsManager({ onProductsChanged }: { onProductsChan
       return na.localeCompare(nb);
     });
   }, [assignedSlugs, catalogBySlug]);
+
+  const filteredItems = useMemo(() => {
+    const q = nameSearch.trim().toLowerCase();
+    if (!q) return items;
+    return items.filter((it) => it.name.toLowerCase().includes(q));
+  }, [items, nameSearch]);
 
   const load = useCallback(async () => {
     setError(null);
@@ -373,10 +380,14 @@ export function InventoryProductsManager({ onProductsChanged }: { onProductsChan
   const editingBusy = editingId !== null && mutatingId === editingId;
   const deleteTarget = deleteConfirmId ? items.find((i) => i.id === deleteConfirmId) : undefined;
   const deleteBusy = deleteConfirmId !== null && mutatingId === deleteConfirmId;
-  const pageCount = Math.max(1, Math.ceil(items.length / pageSize));
+  const pageCount = Math.max(1, Math.ceil(filteredItems.length / pageSize));
   const safePage = Math.min(page, pageCount);
   const startIndex = (safePage - 1) * pageSize;
-  const paginatedItems = items.slice(startIndex, startIndex + pageSize);
+  const paginatedItems = filteredItems.slice(startIndex, startIndex + pageSize);
+
+  useEffect(() => {
+    setPage(1);
+  }, [nameSearch]);
 
   useEffect(() => {
     if (page !== safePage) {
@@ -421,6 +432,19 @@ export function InventoryProductsManager({ onProductsChanged }: { onProductsChan
             </p>
           ) : (
             <>
+              <div className="mb-4 grid gap-2">
+                <span className="font-medium text-muted-foreground text-xs">Search</span>
+                <Input
+                  value={nameSearch}
+                  onChange={(e) => setNameSearch(e.target.value)}
+                  placeholder="Search by product name…"
+                  aria-label="Search products by name"
+                />
+              </div>
+              {filteredItems.length === 0 ? (
+                <p className="text-muted-foreground text-sm">No products match your search.</p>
+              ) : (
+                <>
               <Table>
               <TableHeader>
                 <TableRow>
@@ -510,7 +534,8 @@ export function InventoryProductsManager({ onProductsChanged }: { onProductsChan
               </Table>
               <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t pt-3">
               <p className="text-muted-foreground text-xs">
-                Showing {startIndex + 1}-{Math.min(startIndex + pageSize, items.length)} of {items.length}
+                Showing {startIndex + 1}-{Math.min(startIndex + pageSize, filteredItems.length)} of{" "}
+                {filteredItems.length}
               </p>
               <div className="flex items-center gap-2">
                 <Button
@@ -536,6 +561,8 @@ export function InventoryProductsManager({ onProductsChanged }: { onProductsChan
                 </Button>
               </div>
               </div>
+                </>
+              )}
             </>
           )}
         </CardContent>
@@ -633,8 +660,7 @@ export function InventoryProductsManager({ onProductsChanged }: { onProductsChan
               <DialogHeader>
                 <DialogTitle>Edit product</DialogTitle>
                 <DialogDescription>
-                  Update how this product appears and which neighborhoods it covers. Inventory row id:{" "}
-                  <span className="font-mono text-xs">{editingItem.id}</span>
+                  Update how this product appears and which neighborhoods it covers.
                 </DialogDescription>
               </DialogHeader>
               <div className="grid max-h-[min(70vh,32rem)] gap-4 overflow-y-auto pr-1">
