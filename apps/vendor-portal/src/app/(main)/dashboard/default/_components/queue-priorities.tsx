@@ -1,34 +1,17 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+
 import { ChevronLeft, ChevronRight } from "lucide-react";
+
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardAction,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { OPERABLE_QUEUE_STATUSES } from "@/lib/vendor-ops-types";
+import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { formatQueueDueRelative } from "@/lib/format-queue-due";
 import type { OperableQueueStatus, QueueOrder, QueueStatus } from "@/lib/vendor-ops-types";
+import { OPERABLE_QUEUE_STATUSES } from "@/lib/vendor-ops-types";
 
 const PAGE_SIZE = 10;
 
@@ -76,13 +59,7 @@ function statusBadgeClassName(status: QueueStatus): string {
   return ORDER_STATUS_BADGE_STYLES[status];
 }
 
-export function QueuePriorities({
-  queue,
-  onQueueChange,
-}: {
-  queue: QueueOrder[];
-  onQueueChange: () => Promise<void>;
-}) {
+export function QueuePriorities({ queue, onQueueChange }: { queue: QueueOrder[]; onQueueChange: () => Promise<void> }) {
   const [savingId, setSavingId] = useState<string | null>(null);
   const [pageIndex, setPageIndex] = useState(0);
   const [dueAtSort, setDueAtSort] = useState<DueAtSort>("asc");
@@ -129,10 +106,7 @@ export function QueuePriorities({
 
   const filteredQueue = useMemo(
     () =>
-      queue.filter(
-        (item) =>
-          passesNeighborhoodFilter(item, neighborhoodFilter) && passesPlanFilter(item, planFilter),
-      ),
+      queue.filter((item) => passesNeighborhoodFilter(item, neighborhoodFilter) && passesPlanFilter(item, planFilter)),
     [queue, neighborhoodFilter, planFilter],
   );
 
@@ -188,10 +162,7 @@ export function QueuePriorities({
               {neighborhoodOptions.length > 0 ? (
                 <div className="flex flex-col items-end gap-1">
                   <span className="text-muted-foreground text-xs">Neighborhood</span>
-                  <Select
-                    value={neighborhoodFilter}
-                    onValueChange={setNeighborhoodFilter}
-                  >
+                  <Select value={neighborhoodFilter} onValueChange={setNeighborhoodFilter}>
                     <SelectTrigger
                       className="h-8 w-[11.5rem] max-w-[min(100vw-3rem,11.5rem)]"
                       aria-label="Filter queue by neighborhood"
@@ -254,8 +225,7 @@ export function QueuePriorities({
           <p className="text-muted-foreground text-sm">No orders in the queue.</p>
         ) : sortedQueue.length === 0 ? (
           <p className="text-muted-foreground text-sm">
-            No orders match the selected filters. Try choosing &quot;All neighborhoods&quot; or
-            &quot;All plans&quot;.
+            No orders match the selected filters. Try choosing &quot;All neighborhoods&quot; or &quot;All plans&quot;.
           </p>
         ) : (
           <>
@@ -272,90 +242,89 @@ export function QueuePriorities({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {pageItems.map((item) => (
-                  <TableRow key={item.id}>
-                    <TableCell className="max-w-[12rem] font-medium">
-                      <span className="line-clamp-2">{item.orderId}</span>
-                    </TableCell>
-                    <TableCell className="hidden text-muted-foreground whitespace-nowrap text-xs sm:table-cell">
-                      {new Date(item.createdAt).toLocaleString([], {
-                        month: "short",
-                        day: "numeric",
-                        hour: "numeric",
-                        minute: "2-digit",
-                      })}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className={statusBadgeClassName(item.status)}>
-                        {item.status.replaceAll("_", " ")}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="hidden sm:table-cell">
-                      <Badge variant={item.priority === "high" ? "destructive" : "outline"}>
-                        {item.priority}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="hidden max-w-[14rem] md:table-cell">
-                      {sourceLabel(item) ? (
-                        <span className="text-muted-foreground line-clamp-2 text-xs">
-                          {sourceLabel(item)}
-                        </span>
-                      ) : (
-                        <span className="text-muted-foreground text-xs">—</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground whitespace-nowrap text-xs">
-                      {new Date(item.dueAt).toLocaleTimeString([], {
-                        hour: "numeric",
-                        minute: "2-digit",
-                      })}{" "}
-                      <span className="text-muted-foreground/80">({item.slaMinutesRemaining}m)</span>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {item.status === "cancelled" ? (
-                        <span className="text-muted-foreground text-xs">Cancelled</span>
-                      ) : (
-                        <div className="flex flex-wrap items-center justify-end gap-2">
-                          <Select
-                            value={item.status}
-                            onValueChange={(value: OperableQueueStatus) =>
-                              updateStatus(item.id, value)
-                            }
-                          >
-                            <SelectTrigger className="h-8 w-[8.5rem]">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent align="end">
-                              {OPERABLE_QUEUE_STATUSES.map((status) => (
-                                <SelectItem key={status} value={status}>
-                                  {status.replaceAll("_", " ")}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="default"
-                            className="h-8"
-                            disabled={savingId === item.id}
-                            onClick={() =>
-                              updateStatus(item.id, item.status as OperableQueueStatus)
-                            }
-                          >
-                            {savingId === item.id ? "Saving…" : "Sync"}
-                          </Button>
-                        </div>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {pageItems.map((item) => {
+                  const dueRel =
+                    item.status === "fulfilled" || item.status === "cancelled"
+                      ? null
+                      : formatQueueDueRelative(item.dueAt, new Date());
+                  return (
+                    <TableRow key={item.id}>
+                      <TableCell className="max-w-[12rem] font-medium">
+                        <span className="line-clamp-2">{item.orderId}</span>
+                      </TableCell>
+                      <TableCell className="hidden text-muted-foreground whitespace-nowrap text-xs sm:table-cell">
+                        {new Date(item.createdAt).toLocaleString([], {
+                          month: "short",
+                          day: "numeric",
+                          hour: "numeric",
+                          minute: "2-digit",
+                        })}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className={statusBadgeClassName(item.status)}>
+                          {item.status.replaceAll("_", " ")}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="hidden sm:table-cell">
+                        <Badge variant={item.priority === "high" ? "destructive" : "outline"}>{item.priority}</Badge>
+                      </TableCell>
+                      <TableCell className="hidden max-w-[14rem] md:table-cell">
+                        {sourceLabel(item) ? (
+                          <span className="text-muted-foreground line-clamp-2 text-xs">{sourceLabel(item)}</span>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap text-xs">
+                        {dueRel === null ? (
+                          <span className="text-muted-foreground">—</span>
+                        ) : (
+                          <span className={dueRel.overdue ? "text-destructive" : "text-muted-foreground"}>
+                            {dueRel.label}
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {item.status === "cancelled" ? (
+                          <span className="text-muted-foreground text-xs">Cancelled</span>
+                        ) : (
+                          <div className="flex flex-wrap items-center justify-end gap-2">
+                            <Select
+                              value={item.status}
+                              onValueChange={(value: OperableQueueStatus) => updateStatus(item.id, value)}
+                            >
+                              <SelectTrigger className="h-8 w-[8.5rem]">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent align="end">
+                                {OPERABLE_QUEUE_STATUSES.map((status) => (
+                                  <SelectItem key={status} value={status}>
+                                    {status.replaceAll("_", " ")}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="default"
+                              className="h-8"
+                              disabled={savingId === item.id}
+                              onClick={() => updateStatus(item.id, item.status as OperableQueueStatus)}
+                            >
+                              {savingId === item.id ? "Saving…" : "Sync"}
+                            </Button>
+                          </div>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
             <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t pt-3">
               <p className="text-muted-foreground text-xs">
-                Showing {pageStart + 1}-
-                {Math.min(pageStart + PAGE_SIZE, sortedQueue.length)} of {sortedQueue.length}
+                Showing {pageStart + 1}-{Math.min(pageStart + PAGE_SIZE, sortedQueue.length)} of {sortedQueue.length}
               </p>
               <div className="flex items-center gap-2">
                 <Button
