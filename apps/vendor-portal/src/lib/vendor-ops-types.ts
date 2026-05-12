@@ -15,6 +15,8 @@ export type QueueOrder = {
   sourceType: "plan" | "neighborhood" | null;
   sourceLabel: string | null;
   sourceSlug: string | null;
+  customerName: string | null;
+  customerAddress: string | null;
 };
 
 export type InventoryItem = {

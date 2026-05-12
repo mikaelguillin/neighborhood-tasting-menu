@@ -7,7 +7,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatQueueDueRelative } from "@/lib/format-queue-due";
@@ -166,11 +166,23 @@ export function QueuePriorities({ queue, onQueueChange }: { queue: QueueOrder[];
             <>
               <DialogHeader>
                 <DialogTitle>Order details</DialogTitle>
+                <DialogDescription className="sr-only">
+                  Order identifier, customer, delivery address, timestamps, status, priority, SLA, and ordered plan or
+                  product.
+                </DialogDescription>
               </DialogHeader>
               <dl className="grid gap-3 text-sm">
                 <div className="grid gap-0.5">
                   <dt className="text-muted-foreground">Order ID</dt>
                   <dd>{detail.orderId}</dd>
+                </div>
+                <div className="grid gap-0.5">
+                  <dt className="text-muted-foreground">Customer</dt>
+                  <dd>{detail.customerName ?? "—"}</dd>
+                </div>
+                <div className="grid gap-0.5">
+                  <dt className="text-muted-foreground">Delivery address</dt>
+                  <dd className="wrap-break-word">{detail.customerAddress ?? "—"}</dd>
                 </div>
                 <div className="grid gap-0.5">
                   <dt className="text-muted-foreground">Created</dt>

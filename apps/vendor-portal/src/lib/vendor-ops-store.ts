@@ -17,6 +17,8 @@ function toQueueOrder(row: {
   source_type?: string | null;
   source_label?: string | null;
   source_slug?: string | null;
+  customer_name?: string | null;
+  customer_address?: string | null;
 }): QueueOrder {
   const sourceType =
     row.source_type === "plan" || row.source_type === "neighborhood" ? row.source_type : null;
@@ -31,6 +33,8 @@ function toQueueOrder(row: {
     sourceType,
     sourceLabel: row.source_label ?? null,
     sourceSlug: row.source_slug ?? null,
+    customerName: row.customer_name ?? null,
+    customerAddress: row.customer_address ?? null,
   };
 }
 
@@ -46,6 +50,8 @@ type QueueOrderRpcRow = {
   source_label: string | null;
   source_slug: string | null;
   created_at: string;
+  customer_name: string | null;
+  customer_address: string | null;
 };
 
 function toInventoryItem(row: {
