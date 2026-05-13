@@ -70,7 +70,7 @@ export function QueuePriorities({ queue, onQueueChange }: { queue: QueueOrder[];
   const [savingId, setSavingId] = useState<string | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<QueueOrder | null>(null);
   const [pageIndex, setPageIndex] = useState(0);
-  const [dueAtSort, setDueAtSort] = useState<DueAtSort>("asc");
+  const [dueAtSort, setDueAtSort] = useState<DueAtSort>("desc");
   const [neighborhoodFilter, setNeighborhoodFilter] = useState<string>(FILTER_ALL);
   const [planFilter, setPlanFilter] = useState<string>(FILTER_ALL);
 
